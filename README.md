@@ -1,1 +1,1 @@
-# 1-chan server arcitectural designing
+# 1-chan server 
