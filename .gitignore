@@ -25,6 +25,10 @@ config/*.json
 *.key
 *.pem
 secrets/
+.idea
+.cursor
+logs/
+FASTAPI_GUIDE.md
  
 docker-compose.override.yml
 **/Dockerfile.*.bak
@@ -43,3 +47,4 @@ htmlcov/
 *.orig
 *.rej
 *.swp
+thinket.md
