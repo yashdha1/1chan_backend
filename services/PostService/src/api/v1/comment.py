@@ -53,7 +53,7 @@ async def create_comment(
     return _comment_res(comment)
 
 
-@router.get(f"/post/{post_id}/{offset}", response_model=list[CommentResponse])
+@router.get("/post/{post_id}/{offset}", response_model=list[CommentResponse])
 async def list_comments_for_post(
     post_id: UUID,
     response: Response,

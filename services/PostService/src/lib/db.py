@@ -11,11 +11,11 @@ _SERVICE_ROOT = _SRC_DIR.parent
 for _env in (_SERVICE_ROOT / ".env", _SRC_DIR / ".env", Path(".env")):
     load_dotenv(_env)
 
-_pg_user = os.environ["POSTGRES_AUTH_USERNAME"]
-_pg_pass = os.environ["POSTGRES_AUTH_PASSWORD"]
-_pg_host = os.getenv("POSTGRES_AUTH_HOST", "localhost")
-_pg_port = os.getenv("POSTGRES_AUTH_PORT", "5433")
-_pg_db = os.getenv("POSTGRES_AUTH_DATABASE", "PostDB")
+_pg_user = os.environ["POSTGRES_POST_USERNAME"]
+_pg_pass = os.environ["POSTGRES_POST_PASSWORD"]
+_pg_host = os.getenv("POSTGRES_POST_HOST", "localhost")
+_pg_port = os.getenv("POSTGRES_POST_PORT", "5433")
+_pg_db = os.getenv("POSTGRES_POST_DATABASE", "PostDB")
 
 DATABASE_URL = (
     f"postgresql+asyncpg://{_pg_user}:{_pg_pass}@{_pg_host}:{_pg_port}/{_pg_db}"
