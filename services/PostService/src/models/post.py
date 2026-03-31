@@ -18,6 +18,7 @@ class Post(Base) :
     content = Column(String)
     image_link = Column(String)
     like_count = Column(BigInteger, default=0)
+    edited_by = Column(String, default="") 
     comment_count = Column(BigInteger, default=0)
     search_vector = Column(TSVectorType("title", "content"))
     created_at = Column(DateTime(timezone=False), server_default=func.now())
@@ -26,6 +27,6 @@ class Post(Base) :
 class PostLike(Base) :
     __tablename__ = "post_likes"
     
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id"), primary_key=True)
+    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
     created_at = Column(DateTime(timezone=False), server_default=func.now())

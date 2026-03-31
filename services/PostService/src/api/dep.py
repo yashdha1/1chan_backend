@@ -41,10 +41,8 @@ def _decode_access_token(token: str) -> UserContext:
         avatar=payload.get("avatar") or "",
     )
 
-
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     return _decode_access_token(credentials.credentials)
-
 
 def get_current_user_flexible(
     request: Request,
