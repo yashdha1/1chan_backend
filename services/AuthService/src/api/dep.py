@@ -1,14 +1,11 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException, Request
 import jwt
 from pydantic import BaseModel
 
 from ..core.config import settings
 from ..core.logger import logger as log
-security = HTTPBearer()
-security_optional = HTTPBearer(auto_error=False)
 
 
 class UserContext(BaseModel):
@@ -43,15 +40,8 @@ def _decode_access_token(token: str) -> UserContext:
     )
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    return _decode_access_token(credentials.credentials)
-
-
-def get_current_user_flexible(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(security_optional),
-):
-    token = credentials.credentials if credentials else request.cookies.get("access_token")
+def get_current_user(request: Request) -> UserContext:
+    token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return _decode_access_token(token)

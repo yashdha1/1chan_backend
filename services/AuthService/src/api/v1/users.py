@@ -10,7 +10,7 @@ from ...lib.db import get_db
 from ...lib.redis import get_redis 
 from ...core.logger import logger as log
 
-from ..dep import get_current_user, get_current_user_flexible, UserContext
+from ..dep import get_current_user, UserContext
 
 router = APIRouter(tags=["auth"])
 
@@ -18,7 +18,7 @@ router = APIRouter(tags=["auth"])
 async def logout(
     request: Request,
     response: Response,
-    user: UserContext = Depends(get_current_user_flexible),
+    user: UserContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
 ):
