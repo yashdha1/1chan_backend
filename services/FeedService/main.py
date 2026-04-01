@@ -1,5 +1,5 @@
 def main():
-    print("Hello from contentservice!")
+    print("Hello from feedservice!")
 
 
 if __name__ == "__main__":

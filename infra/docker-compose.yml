@@ -1,0 +1,52 @@
+services:
+  # Auth tokens / sessions — AuthService (Notification/Feed can use this when they need Redis)
+  redis-auth:
+    image: redis:7-alpine
+    container_name: onechan-redis-auth
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_auth_data:/data
+    restart: unless-stopped
+
+  # Post feed / comment cache — PostService
+  redis-post:
+    image: redis:7-alpine
+    container_name: onechan-redis-post
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_post_cache_data:/data
+    restart: unless-stopped
+
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-auth
+    environment:
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+      POSTGRES_DB: AuthDB
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  postgres-post:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-post
+    environment:
+      POSTGRES_USER: post
+      POSTGRES_PASSWORD: post
+      POSTGRES_DB: PostDB
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_post_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  redis_auth_data:
+  redis_post_cache_data:
+  postgres_auth_data:
+  postgres_post_data: 
