@@ -48,3 +48,4 @@ htmlcov/
 *.rej
 *.swp
 thinket.md
+.ruff_cache/

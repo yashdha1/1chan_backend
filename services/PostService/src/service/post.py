@@ -73,6 +73,6 @@ class PostService:
             res = await self.post_repo.search_posts(query)
             log.info(f"Search completed for query: {query} with {len(res)} results")
             return res
-        except Exception as e:
+        except Exception :
             log.exception(f"Error searching posts for query: {query}")
             raise HTTPException(status_code=500, detail="Internal Server Error")

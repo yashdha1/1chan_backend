@@ -46,7 +46,7 @@ def _create_payload(req: PostRequest, user: UserContext) -> dict:
     }
 
 
-@router.post("", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
     body: PostRequest,
     response: Response,
@@ -65,7 +65,7 @@ async def get_post(
     response: Response,
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
-):
+): 
     svc = PostService(db, response, r)
     post = await svc.get_post_by_id(str(post_id))
     return _post_res(post)

@@ -1,6 +1,6 @@
 from uuid import UUID
  
-from fastapi import HTTPException, Response
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
  
@@ -10,21 +10,25 @@ from ..models.user import User, Role
 
 
 class AdminService: 
-    def __init__(self, db: AsyncSession, response: Response, r=None) -> None:
+    def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
     async def get_users(self, role: str):
-        try :                 
+        try:
             if role == "all":
-                stmt = select(User).where(User.role != Role.ADMIN and User.role != Role.MOD)
-            elif role == "mods":
+                stmt = select(User).where(User.role.notin_([Role.ADMIN, Role.MOD]))
+            elif role == "mod":
                 stmt = select(User).where(User.role == Role.MOD)
             elif role == "user":
                 stmt = select(User).where(User.role == Role.USER)
+            else:
+                raise HTTPException(status_code=400, detail="Invalid role filter")
             
             result = await self.db.execute(stmt)
             users = result.scalars().all()
             return users
+        except HTTPException:
+            raise
         except Exception as e:
             log.error(f"Error fetching admin users: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")

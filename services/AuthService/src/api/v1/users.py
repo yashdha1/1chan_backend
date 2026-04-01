@@ -8,6 +8,7 @@ from ...service.auth_user import AuthService
 
 from ...lib.db import get_db
 from ...lib.redis import get_redis 
+from ...core.logger import logger as log
 
 from ..dep import get_current_user, get_current_user_flexible, UserContext
 
@@ -35,7 +36,7 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
     user: UserContext = Depends(get_current_user),
-):
+): 
     svc = AuthService(db, response, r)
     updated = await svc.update_profile(username, body, user)
     return Profile(user=updated)

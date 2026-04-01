@@ -6,7 +6,7 @@ import jwt
 from pydantic import BaseModel
 
 from ..core.config import settings
-
+from ..core.logger import logger as log
 security = HTTPBearer()
 security_optional = HTTPBearer(auto_error=False)
 
@@ -31,6 +31,7 @@ def _decode_access_token(token: str) -> UserContext:
     uid = payload.get("id")
     uname = payload.get("username")
     role = payload.get("role")
+
     if not uid or not uname or not role:
         raise HTTPException(status_code=401, detail="Invalid token")
 

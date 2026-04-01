@@ -49,5 +49,4 @@ volumes:
   redis_auth_data:
   redis_post_cache_data:
   postgres_auth_data:
-  postgres_post_data:
-  postgres_shared_data:
+  postgres_post_data: 

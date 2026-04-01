@@ -2,7 +2,7 @@ import json
 from uuid import UUID
 
 from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy.ext.asyncio import AsyncSession # noqa F401
 
 from ..models.post import Post
 from fastapi import HTTPException
@@ -77,7 +77,7 @@ class PostRepository:
 
     async def search_posts(self, query: str):
         """FTS; order by rank and likes. redis cache"""
-        
+
         # 1. check cache
         cache_key = f"search:{query}"
         if self.cache:
@@ -93,20 +93,21 @@ class PostRepository:
                         return posts
                 except (json.JSONDecodeError, ValueError):
                     pass
-        
-        # 2. cache miss : 
+
+        # 2. cache miss
+        tsquery = func.plainto_tsquery("english", query)
         statement = (
             select(Post)
-            .where(Post.search_vector.match(query, postgresql_regconfig="english"))
+            .where(Post.search_vector.op("@@")(tsquery))
             .order_by(
-                func.ts_rank(Post.search_vector, func.plainto_tsquery(query)),
+                func.ts_rank(Post.search_vector, tsquery).desc(),
                 Post.like_count.desc(),
             )
         )
         res = await self.db.execute(statement)
         posts = list(res.scalars().all())
 
-        # 3. cache res
+        # 3. cache result
         if self.cache and posts:
             payload = json.dumps([str(p.id) for p in posts])
             await self.cache.set(cache_key, payload, ex=3600)

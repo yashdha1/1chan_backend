@@ -210,12 +210,14 @@ class AuthService:
             query = select(User).where(User.username == username)
             result = await self.db.execute(query)
             usr = result.scalar_one_or_none()
+
             if not usr:
                 raise HTTPException(status_code=404, detail="User not found")
             _verify_actor(user, usr)
             # TODO: Add a httpx call to update this in the Content service:
             usr.bio = body.bio
             usr.avatar = body.avatar
+
             await self.db.commit()
             await self.db.refresh(usr)
             log.info(f"User {username} updated their profile.")
@@ -228,7 +230,7 @@ class AuthService:
                 is_active=usr.is_active,
             )
         except HTTPException:
-            raise HTTPException(status_code=403, detail="You can only update your own profile")
+            raise
         except Exception:
             await self.db.rollback()
             log.error("error updating the profile fields for the user.")

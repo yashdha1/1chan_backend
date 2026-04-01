@@ -17,4 +17,5 @@ dependencies = [
     "uvicorn>=0.42.0",
     "pyjwt[crypto]>=2.12.1",
     "sqlalchemy-utils>=0.42.1",
+    "ruff>=0.15.8",
 ]
