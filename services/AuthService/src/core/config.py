@@ -52,17 +52,11 @@ class Settings(BaseSettings):
 
         if not priv or not pub:
             raise ValueError(
-                "JWT RS256 requires RSA key material in PEM form. Set JWT_PRIVATE_KEY and "
-                "JWT_PUBLIC_KEY to PEM strings, or JWT_PRIVATE_KEY_FILE and JWT_PUBLIC_KEY_FILE "
-                "to PEM file paths. Generate a key pair with: "
-                "openssl genrsa -out private.pem 2048 && "
-                "openssl rsa -in private.pem -pubout -out public.pem"
+                "Auth failed"
             )
         if "BEGIN" not in priv or "BEGIN" not in pub:
             raise ValueError(
-                "JWT keys must be full PEM text (include -----BEGIN ...----- and -----END ...----- "
-                "lines), not bare base64. Use JWT_PRIVATE_KEY_FILE / JWT_PUBLIC_KEY_FILE pointing "
-                "at .pem files, or one env line with literal \\n between PEM lines."
+                "Auth failed"
             )
         object.__setattr__(self, "JWT_PRIVATE_KEY", priv)
         object.__setattr__(self, "JWT_PUBLIC_KEY", pub)

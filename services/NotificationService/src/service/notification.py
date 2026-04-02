@@ -10,7 +10,7 @@ from ..repo.notification import send_notification , mark_as_read, get_notificati
 
 class NotificationService:
     @staticmethod
-    async def send_notification(self, db, req: SendNotificationRequest) -> Notification:
+    async def send_notification(db, req: SendNotificationRequest) -> Notification:
         res = await send_notification(db, req)
         if not res :
             log.error("Error sending notification") 
@@ -19,7 +19,7 @@ class NotificationService:
 
     
     @staticmethod
-    async def mark_as_read(self, db, req: MarkAsReadRequest, user_id) -> Response:  
+    async def mark_as_read(db, req: MarkAsReadRequest, user_id) -> Response:  
         res =  await mark_as_read(db, req, user_id)
         if not res :
             log.error("Error marking notification as read") 
@@ -27,7 +27,7 @@ class NotificationService:
         return res 
     
     @staticmethod
-    async def get_notifications_for_user(self, db, user_id, offset) -> list[Notification]:
+    async def get_notifications_for_user(db, user_id, offset) -> list[Notification]:
         res = await get_notifications_for_user(db, user_id, offset)
         if not res :
             log.error("Error getting notifications for user") 

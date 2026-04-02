@@ -13,7 +13,7 @@ class SendNotificationRequest(BaseModel):
     type: str 
     post_id: UUID 
     post_title: str 
-    body: UUID | None = None # can be a like wala comment
+    body: str | None = None # can be a like wala comment
 
 class MarkAsReadRequest(BaseModel):
     notification_id: UUID

@@ -15,6 +15,7 @@ class PostRepository:
         self.cache = cache
 
     async def create_post(self, post_data):
+        print(post_data)
         new_post = Post(**post_data)
         self.db.add(new_post)
         await self.db.commit()
