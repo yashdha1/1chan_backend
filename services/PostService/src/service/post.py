@@ -68,6 +68,28 @@ class PostService:
             log.error(f"Error patching post: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
+    async def like_post(self, post_id: UUID, user_id: UUID):
+        try:
+            res = await self.post_repo.like_post(post_id, user_id)
+            log.info(f"Post liked: {post_id} by {user_id}")
+            return res
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.error(f"Error liking post: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def unlike_post(self, post_id: UUID, user_id: UUID):
+        try:
+            res = await self.post_repo.unlike_post(post_id, user_id)
+            log.info(f"Post unliked: {post_id} by {user_id}")
+            return res
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.error(f"Error unliking post: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
     async def search_posts(self, query: str):
         try:
             res = await self.post_repo.search_posts(query)

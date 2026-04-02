@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select, func
 # from sqlalchemy.ext.asyncio import AsyncSession # noqa F401
 
-from ..models.post import Post
+from ..models.post import Post, PostLike
 from fastapi import HTTPException
 from ..core.logger import logger as log
 
@@ -70,6 +70,52 @@ class PostRepository:
         if edited_by:
             post.edited_by = edited_by.upper()
 
+        self.db.add(post)
+        await self.db.commit()
+        await self.db.refresh(post)
+        return post
+
+    async def like_post(self, post_id: UUID, user_id: UUID) -> Post:
+        q = select(Post).where(Post.id == post_id)
+        post = (await self.db.execute(q)).scalar_one_or_none()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        existing = (
+            await self.db.execute(
+                select(PostLike).where(
+                    PostLike.post_id == post_id, PostLike.user_id == user_id
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            return post
+
+        self.db.add(PostLike(post_id=post_id, user_id=user_id))
+        post.like_count = int(post.like_count or 0) + 1
+        self.db.add(post)
+        await self.db.commit()
+        await self.db.refresh(post)
+        return post
+
+    async def unlike_post(self, post_id: UUID, user_id: UUID) -> Post:
+        q = select(Post).where(Post.id == post_id)
+        post = (await self.db.execute(q)).scalar_one_or_none()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        like_row = (
+            await self.db.execute(
+                select(PostLike).where(
+                    PostLike.post_id == post_id, PostLike.user_id == user_id
+                )
+            )
+        ).scalar_one_or_none()
+        if not like_row:
+            return post
+
+        await self.db.delete(like_row)
+        post.like_count = max(0, int(post.like_count or 0) - 1)
         self.db.add(post)
         await self.db.commit()
         await self.db.refresh(post)

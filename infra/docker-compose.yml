@@ -1,5 +1,5 @@
 services:
-  # Auth tokens / sessions — AuthService (Notification/Feed can use this when they need Redis)
+  # Auth # tokens and cache
   redis-auth:
     image: redis:7-alpine
     container_name: onechan-redis-auth
@@ -9,7 +9,7 @@ services:
       - redis_auth_data:/data
     restart: unless-stopped
 
-  # Post feed / comment cache — PostService
+  # Post # cache 
   redis-post:
     image: redis:7-alpine
     container_name: onechan-redis-post
@@ -18,7 +18,22 @@ services:
     volumes:
       - redis_post_cache_data:/data
     restart: unless-stopped
+  
+  # redis-stream-messenger:
+  #   image: redis:7-alpine
+  #   container_name: onechan-redis-messenger
+  #   ports:
+  #     - "6381:6379"
+  #   restart: unless-stopped
+  
+  # redis-notication: 
+  #   image: redis:7-alpine
+  #   container_name: onechan-redis-notification
+  #   ports:
+  #     - "6382:6379"
+  #   restart: unless-stopped
 
+  # authentication service 
   postgres-auth:
     image: postgres:16-alpine
     container_name: onechan-postgres-auth
@@ -32,6 +47,7 @@ services:
       - postgres_auth_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  # postal service 
   postgres-post:
     image: postgres:16-alpine
     container_name: onechan-postgres-post
@@ -45,8 +61,23 @@ services:
       - postgres_post_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+    # notif service 
+  postgres-notification:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-notification
+    environment:
+      POSTGRES_USER: notification
+      POSTGRES_PASSWORD: notification
+      POSTGRES_DB: NotificationDB
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    
 volumes:
   redis_auth_data:
   redis_post_cache_data:
   postgres_auth_data:
-  postgres_post_data: 
+  postgres_post_data:
+  postgres_notification_data:

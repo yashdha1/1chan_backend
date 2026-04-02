@@ -17,6 +17,7 @@ from ...schema.posts.posts import (
     SearchPostRequest,
 )
 from ...service.post import PostService
+from .post_manager import manager
 
 router = APIRouter(tags=["Posts"])
 
@@ -105,6 +106,38 @@ async def delete_post(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.post("/{post_id}/like", response_model=PostResponse)
+async def like_post(
+    post_id: UUID,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = PostService(db, response, r)
+    post = await svc.like_post(post_id, user.id)
+    await manager.broadcast_post(
+        str(post_id), {"event": "like_update", "like_count": int(post.like_count or 0)}
+    )
+    return _post_res(post)
+
+
+@router.post("/{post_id}/unlike", response_model=PostResponse)
+async def unlike_post(
+    post_id: UUID,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = PostService(db, response, r)
+    post = await svc.unlike_post(post_id, user.id)
+    await manager.broadcast_post(
+        str(post_id), {"event": "like_update", "like_count": int(post.like_count or 0)}
+    )
+    return _post_res(post)
+
+
 @router.post("/search", response_model=SearchPostsResponse)
 async def search_posts(
     body: SearchPostRequest,
@@ -124,3 +157,4 @@ async def search_posts(
         for i, p in enumerate(posts)
     ]
     return SearchPostsResponse(items=items)
+

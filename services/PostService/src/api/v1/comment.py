@@ -15,6 +15,7 @@ from ...schema.comments.comment import (
     CommentUnlikeRequest,
 )
 from ...service.comment import CommentService
+from .post_manager import manager
 
 router = APIRouter(tags=["Comments"])
 
@@ -50,7 +51,20 @@ async def create_comment(
         user_avatar=user.avatar or None,
         body=body.body,
     )
-    return _comment_res(comment)
+    res = _comment_res(comment)
+
+    await manager.broadcast_post(
+        str(body.post_id),
+        {"event": "comment_update", "comment": res.model_dump(mode="json")},
+    )
+    if body.parent_id is not None:
+        await manager.broadcast_thread(
+            str(body.post_id),
+            str(body.parent_id),
+            {"event": "new_reply", "comment": res.model_dump(mode="json")},
+        )
+
+    return res
 
 
 @router.get("/post/{post_id}/{offset}", response_model=list[CommentResponse])

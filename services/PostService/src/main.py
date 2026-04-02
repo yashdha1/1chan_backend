@@ -4,8 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.router import router
+from .api.v1.post_manager import ws_router
 from .core.config import settings
-from .lib.db import Base, engine 
+from .lib.db import Base, engine
 
 
 @asynccontextmanager
@@ -29,3 +30,4 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api/v1")
+app.include_router(ws_router) # socket routes :
