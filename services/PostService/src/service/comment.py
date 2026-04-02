@@ -33,9 +33,9 @@ class CommentService:
             log.error(f"Error creating comment: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
-    async def list_for_post(self, post_id: UUID, offset: int) -> list[Comment]:
+    async def list_for_post(self, post_id: UUID, offset: int, parent_id: UUID) -> list[Comment]:
         try:
-            return await self.comment_repo.list_for_post(post_id, offset)
+            return await self.comment_repo.list_for_post(post_id, offset, parent_id)
         except Exception as e:
             log.error(f"Error listing comments: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")

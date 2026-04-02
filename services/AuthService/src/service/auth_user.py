@@ -81,8 +81,8 @@ class AuthService:
 
         access_token, refresh_token = self._generate_token(new_user)
 
-        self.res.set_cookie(key="access_token", value=access_token, httponly=True)
-        self.res.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
+        self.res.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+        self.res.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
         await self.redis.set(f"refresh_token:{new_user.id}", refresh_token, ex=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
         log.info(f"User {data.username} registered.")
         return UserLoginResponse(access_token=access_token, refresh_token=refresh_token)
@@ -99,8 +99,8 @@ class AuthService:
 
         access_token, refresh_token = self._generate_token(user)
 
-        self.res.set_cookie(key="access_token", value=access_token, httponly=True, samesite="Strict", max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60)
-        self.res.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="Strict", max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
+        self.res.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+        self.res.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
         await self.redis.set(
             f"refresh_token:{user.id}",
             refresh_token,
@@ -186,15 +186,16 @@ class AuthService:
             key="access_token",
             value=access_token,
             httponly=True,
-            samesite="strict",
+            samesite="lax",
+            path="/",
             max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
-        # rotating refresh token :
         self.res.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            samesite="strict",
+            samesite="lax",
+            path="/",
             max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         )
         await self.redis.set(

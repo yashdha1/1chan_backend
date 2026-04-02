@@ -13,6 +13,7 @@ from ...schema.comments.comment import (
     CommentPostRequest,
     CommentResponse,
     CommentUnlikeRequest,
+    CommentGetRequest
 )
 from ...service.comment import CommentService
 from .post_manager import manager
@@ -67,16 +68,16 @@ async def create_comment(
     return res
 
 
-@router.get("/post/{post_id}/{offset}", response_model=list[CommentResponse])
+@router.post("/post/{post_id}", response_model=list[CommentResponse])
 async def list_comments_for_post(
     post_id: UUID,
+    body: CommentGetRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
-    offset: int = 0,
 ):
     svc = CommentService(db, response, r)
-    comments = await svc.list_for_post(post_id, offset)
+    comments = await svc.list_for_post(post_id, body.offset, body.parent_id)
     return [_comment_res(c) for c in comments]
 
 

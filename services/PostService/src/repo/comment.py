@@ -54,14 +54,15 @@ class CommentRepository:
         log.info(f"Comment created id={comment.id} post_id={post_id}")
         return comment
 
-    async def list_for_post(self, post_id: UUID, ofset: int) -> list[Comment]:
+    async def list_for_post(self, post_id: UUID, ofset: int, parent_id: UUID | None) -> list[Comment]:
+
+        # TODO : cache the res for this query in the global cache : invalidate after like 2 hrs : # noqa E501
         q = (
             select(Comment)
-            .where(Comment.post_id == post_id)
-            .order_by(Comment.like_count.desc()
+            .where(Comment.post_id == post_id, Comment.parent_id == parent_id)
+            .order_by(Comment.like_count.desc())
             .offset(ofset)
-            .limit(10)
-            )
+            .limit(15)
         )
         res = await self.db.execute(q)
         return list(res.scalars().all())
