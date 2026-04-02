@@ -54,10 +54,11 @@ class PostService:
         body: str | None = None,
         image_link: str | None = None,
         edited_by: str = "",
+        tags: str | None = None,
     ):
         try:
             res = await self.post_repo.patch_post(
-                post_id, uid, title, body, image_link, edited_by
+                post_id, uid, title, body, image_link, edited_by, tags
             )
             log.info(f"Post patched with ID: {post_id}")
             return res

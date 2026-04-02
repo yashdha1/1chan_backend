@@ -54,6 +54,7 @@ class PostRepository:
         body: str | None = None,
         image_link: str | None = None,
         edited_by: str = "",
+        tags: str | None = None,
     ):
         q = select(Post).where(Post.id == post_id, Post.user_id == user_id)
         res = await self.db.execute(q)
@@ -67,6 +68,8 @@ class PostRepository:
             post.content = body
         if image_link is not None:
             post.image_link = image_link
+        if tags is not None:
+            post.tags = tags
 
         if edited_by:
             post.edited_by = edited_by.upper()
