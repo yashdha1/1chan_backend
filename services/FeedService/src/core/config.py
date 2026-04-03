@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     JWT_PUBLIC_KEY_FILE: Path | None = None
     JWT_ALGORITHM: str = "RS256"
 
+    # FEED GENERATION CONFIG
+    FEED_TOTAL_PAGE_SIZE: int = 40
+    TOP_K_USER_TAGS: int = 10
+    EXPLORE_FEED_SIZE: int = 10
+    COLD_START_SIZE: int = 40
+
+
+
+
     @model_validator(mode="after")
     def _resolve_jwt_pem_keys(self) -> "Settings":
         pub = ""
