@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
- 
+
 _SRC_DIR = Path(__file__).resolve().parent.parent
 _SERVICE_ROOT = _SRC_DIR.parent
 
@@ -51,13 +51,9 @@ class Settings(BaseSettings):
             pub = _normalize_pem(self.JWT_PUBLIC_KEY)
 
         if not priv or not pub:
-            raise ValueError(
-                "Auth failed"
-            )
+            raise ValueError("Auth failed")
         if "BEGIN" not in priv or "BEGIN" not in pub:
-            raise ValueError(
-                "Auth failed"
-            )
+            raise ValueError("Auth failed")
         object.__setattr__(self, "JWT_PRIVATE_KEY", priv)
         object.__setattr__(self, "JWT_PUBLIC_KEY", pub)
         return self

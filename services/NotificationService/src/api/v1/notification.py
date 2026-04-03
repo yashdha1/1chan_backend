@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.exceptions import HTTPException
 
 from ...lib.db import get_db
-from ...models.notifcation import Notification
 from ...schema.notification import SendNotificationRequest, MarkAsReadRequest
 from ...service.notification import NotificationService 
 from ..dep import get_current_user

@@ -5,7 +5,6 @@ import jwt
 from pydantic import BaseModel
 
 from ..core.config import settings
-from ..core.logger import logger as log
 
 
 class UserContext(BaseModel):

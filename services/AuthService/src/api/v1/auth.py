@@ -16,7 +16,8 @@ from ...service.auth_user import AuthService
 
 router = APIRouter(tags=["auth"])
 
-@router.post("/register", response_model=UserLoginResponse) 
+
+@router.post("/register", response_model=UserLoginResponse)
 async def register(
     body: UserRegistrationRequest,
     response: Response,
@@ -62,5 +63,6 @@ async def get_profile(
     user = await svc.get_profile(username)
     return Profile(user=user)
 
-# TODO: Formatting  # noqa 
+
+# TODO: Formatting  # noqa
 # TODO: stucture    # noqa

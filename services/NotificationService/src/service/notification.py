@@ -1,7 +1,5 @@
-from uuid import UUID
 
 from fastapi import HTTPException, Response
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logger import logger as log
 from ..models.notifcation import Notification
