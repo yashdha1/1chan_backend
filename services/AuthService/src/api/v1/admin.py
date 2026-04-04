@@ -8,7 +8,7 @@ from ..dep import get_current_user, UserContext
 from ...schema.user import UserOut
 from ...service.auth_admin import AdminService
 
-router = APIRouter(tags=["admin"])
+router = APIRouter(prefix="/auth/admin", tags=["admin"])
 
 
 def _require_admin(actor: UserContext) -> None:
@@ -32,7 +32,7 @@ async def get_users(
 
 
 @router.patch(
-    "/users/{user_id}/role",
+    "/users/{user_id}",
     response_model=UserOut,
     responses={403: {"description": "Forbidden"}},
 )

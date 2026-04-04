@@ -88,6 +88,27 @@ services:
     volumes:
       - postgres_feed_data:/var/lib/postgresql/data
     restart: unless-stopped
+  
+  kong:
+    image: kong:3.6
+    container_name: onechan-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8010"
+      # JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+    volumes:
+      - ./kong.yaml:/etc/kong/kong.yaml:ro
+    ports:
+      - "8000:8000"   # fontend hits this 
+      - "8010:8010"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
     
 volumes:
   redis_auth_data:

@@ -11,8 +11,7 @@ from ...lib.redis import get_redis
 
 from ..dep import get_current_user, UserContext
 
-router = APIRouter(tags=["auth"])
-
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/logout", status_code=204)
 async def logout(
@@ -28,6 +27,15 @@ async def logout(
     svc = AuthService(db, response, r)
     await svc.logout_user(user, refresh)
 
+@router.get("/profile/{username}", response_model=Profile)
+async def get_profile(
+    username: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    svc = AuthService(db, response)
+    user = await svc.get_profile(username)
+    return Profile(user=user)
 
 @router.patch("/profile/{username}", response_model=Profile)
 async def update_profile(
