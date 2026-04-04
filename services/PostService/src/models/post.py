@@ -21,6 +21,7 @@ class Post(Base) :
     edited_by = Column(String, default="") 
     comment_count = Column(BigInteger, default=0)
     search_vector = Column(TSVectorType("title", "content"))
+    tags = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=False), server_default=func.now())
     updated_at = Column(DateTime(timezone=False), server_default=func.now(), onupdate=func.now())
 

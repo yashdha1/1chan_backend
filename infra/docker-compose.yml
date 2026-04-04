@@ -61,7 +61,7 @@ services:
       - postgres_post_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-    # notif service 
+  # notif service 
   postgres-notification:
     image: postgres:16-alpine
     container_name: onechan-postgres-notification
@@ -74,6 +74,20 @@ services:
     volumes:
       - postgres_notification_data:/var/lib/postgresql/data
     restart: unless-stopped
+  
+  # Feed service
+  postgres-feed:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-feed
+    environment:
+      POSTGRES_USER: feed
+      POSTGRES_PASSWORD: feed
+      POSTGRES_DB: FeedDB
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_feed_data:/var/lib/postgresql/data
+    restart: unless-stopped
     
 volumes:
   redis_auth_data:
@@ -81,3 +95,4 @@ volumes:
   postgres_auth_data:
   postgres_post_data:
   postgres_notification_data:
+  postgres_feed_data:

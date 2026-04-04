@@ -10,7 +10,7 @@ from ...lib.redis import get_redis
 from ...models.post import Post
 from ...schema.posts.posts import (
     PatchPostRequest,
-    PostRequest,
+    CreatePostRequest,
     PostResponse,
     SearchPostItem,
     SearchPostsResponse,
@@ -33,10 +33,11 @@ def _post_res(post: Post) -> PostResponse:
         image_link=post.image_link,
         like_count=int(post.like_count or 0),
         comment_count=int(post.comment_count or 0),
+        tags=[t for t in (post.tags or "").split(",") if t],
     )
 
 
-def _create_payload(req: PostRequest, user: UserContext) -> dict:
+def _create_payload(req: CreatePostRequest, user: UserContext) -> dict:
     return {
         "user_id": user.id,
         "user_name": user.uname,
@@ -44,12 +45,13 @@ def _create_payload(req: PostRequest, user: UserContext) -> dict:
         "title": req.title,
         "content": req.body,
         "image_link": req.image_link,
+        "tags": ",".join(req.tags),  # save as a string 
     }
 
 
 @router.post("/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
-    body: PostRequest,
+    body: CreatePostRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
@@ -89,6 +91,7 @@ async def patch_post(
         body=body.body,
         image_link=body.image_link,
         edited_by=body.edited_by,
+        tags=",".join(body.tags) if body.tags is not None else None,
     )
     return _post_res(post)
 

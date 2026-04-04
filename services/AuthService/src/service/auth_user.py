@@ -17,7 +17,7 @@ from ..schema.user import (
     UserLoginResponse,
     UserOut,
     UserRegistrationRequest,
-    ProfileUpdateRequest, 
+    ProfileUpdateRequest,
 )
 
 
@@ -81,9 +81,27 @@ class AuthService:
 
         access_token, refresh_token = self._generate_token(new_user)
 
-        self.res.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60)
-        self.res.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
-        await self.redis.set(f"refresh_token:{new_user.id}", refresh_token, ex=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
+        self.res.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        self.res.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        )
+        await self.redis.set(
+            f"refresh_token:{new_user.id}",
+            refresh_token,
+            ex=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        )
         log.info(f"User {data.username} registered.")
         return UserLoginResponse(access_token=access_token, refresh_token=refresh_token)
 
@@ -99,8 +117,22 @@ class AuthService:
 
         access_token, refresh_token = self._generate_token(user)
 
-        self.res.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60)
-        self.res.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax", path="/", max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
+        self.res.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        self.res.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        )
         await self.redis.set(
             f"refresh_token:{user.id}",
             refresh_token,
@@ -125,7 +157,9 @@ class AuthService:
             raise HTTPException(status_code=401, detail="Invalid token")
 
         if UUID(uid) != actor.id:
-            raise HTTPException(status_code=403, detail="Cannot log out another session")
+            raise HTTPException(
+                status_code=403, detail="Cannot log out another session"
+            )
 
         stored_token = await self.redis.get(f"refresh_token:{uid}")
         stored_str = (
@@ -172,7 +206,9 @@ class AuthService:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
         stored = await self.redis.get(f"refresh_token:{uid}")
-        stored_str = stored.decode("utf-8") if isinstance(stored, (bytes, bytearray)) else stored
+        stored_str = (
+            stored.decode("utf-8") if isinstance(stored, (bytes, bytearray)) else stored
+        )
         if not stored_str or stored_str != refresh_token:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
@@ -206,7 +242,9 @@ class AuthService:
         log.info(f"User {user.username} refreshed.")
         return UserLoginResponse(access_token=access_token, refresh_token=refresh_token)
 
-    async def update_profile(self, username: str, body: ProfileUpdateRequest, user: UserContext) -> UserOut:
+    async def update_profile(
+        self, username: str, body: ProfileUpdateRequest, user: UserContext
+    ) -> UserOut:
         try:
             query = select(User).where(User.username == username)
             result = await self.db.execute(query)
@@ -254,7 +292,7 @@ class AuthService:
             await self.db.rollback()
             log.error("error deleting the user profile.")
             raise HTTPException(status_code=500, detail="Failed to delete profile.")
-        
+
     # helper
     def _generate_token(self, data: User) -> tuple[str, str]:
         now = datetime.now(timezone.utc)
@@ -278,10 +316,14 @@ class AuthService:
         }
         try:
             access_token = jwt.encode(
-                access_payload, settings.JWT_PRIVATE_KEY, algorithm=settings.JWT_ALGORITHM
+                access_payload,
+                settings.JWT_PRIVATE_KEY,
+                algorithm=settings.JWT_ALGORITHM,
             )
             refresh_token = jwt.encode(
-                refresh_payload, settings.JWT_PRIVATE_KEY, algorithm=settings.JWT_ALGORITHM
+                refresh_payload,
+                settings.JWT_PRIVATE_KEY,
+                algorithm=settings.JWT_ALGORITHM,
             )
         except jwt.PyJWTError as exc:
             log.exception("JWT encode failed")
