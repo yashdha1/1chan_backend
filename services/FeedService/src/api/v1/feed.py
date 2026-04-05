@@ -10,11 +10,11 @@ from ..dep import get_current_user, UserContext
 
 router = APIRouter(tags=["Feed"])
 
-@router.get("/generate_feed")
+@router.get("/generate_feed/{feed_type}")
 async def generate_feed(
-    body: GenerateFeed,
+    feed_type: str,
     user: UserContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     svc = FeedService(db)
-    return await svc.generate_feed(user.id, body.feed_type)
+    return await svc.generate_feed(user.id, feed_type)

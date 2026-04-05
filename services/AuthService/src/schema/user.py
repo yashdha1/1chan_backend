@@ -4,6 +4,7 @@ from pydantic.fields import Field
 
 
 class UserRegistrationRequest(BaseModel):
+    id: UUID
     username: str
     password: str = Field(min_length=8, max_length=128)
     bio: str

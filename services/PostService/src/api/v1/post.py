@@ -62,6 +62,18 @@ async def create_post(
     return _post_res(post)
 
 
+@router.get("/user/{username}", response_model=list[PostResponse])
+async def get_posts_by_username(
+    username: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+):
+    svc = PostService(db, response, r)
+    posts = await svc.get_posts_by_username(username)
+    return [_post_res(p) for p in posts]
+
+
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post(
     post_id: UUID,

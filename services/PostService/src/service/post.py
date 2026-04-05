@@ -99,3 +99,10 @@ class PostService:
         except Exception :
             log.exception(f"Error searching posts for query: {query}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def get_posts_by_username(self, username: str):
+        try:
+            return await self.post_repo.get_posts_by_username(username)
+        except Exception:
+            log.exception(f"Error fetching posts for user: {username}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")

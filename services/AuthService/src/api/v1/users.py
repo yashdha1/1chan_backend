@@ -37,9 +37,8 @@ async def get_profile(
     user = await svc.get_profile(username)
     return Profile(user=user)
 
-@router.patch("/profile/{username}", response_model=Profile)
+@router.patch("/profile", response_model=Profile)
 async def update_profile(
-    username: str,
     body: ProfileUpdateRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
@@ -47,20 +46,32 @@ async def update_profile(
     user: UserContext = Depends(get_current_user),
 ):
     svc = AuthService(db, response, r)
+    username = user.username # just get the user from the username only : 
     updated = await svc.update_profile(username, body, user)
     return Profile(user=updated)
 
 
-@router.delete("/profile/{username}", status_code=204)
-async def delete_profile(
-    username: str,
+@router.delete("/profile", status_code=204)
+async def delete_own_profile(
     response: Response,
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
     user: UserContext = Depends(get_current_user),
 ):
     svc = AuthService(db, response, r)
-    return await svc.delete_profile(username, user)
+    return await svc.delete_profile(user) 
 
+@router.delete("/profile/{id}", status_code=204)
+async def delete_profile_by_admin(
+    id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+): 
+    if user.role != "admin": 
+        raise HTTPException(status_code=403, detail="Only admins can delete profiles.")
+    svc = AuthService(db, response, r)
+    return await svc.delete_profile_by_admin(id)
 
 # TODO: Password reset. # noqa

@@ -32,7 +32,7 @@ async def get_users(
 
 
 @router.patch(
-    "/users/{user_id}",
+    "/users/{user_id}/{new_role}",
     response_model=UserOut,
     responses={403: {"description": "Forbidden"}},
 )
