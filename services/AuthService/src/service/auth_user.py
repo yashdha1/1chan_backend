@@ -63,12 +63,14 @@ class AuthService:
         ).decode("utf-8")
 
         new_user = User(
+            id = data.id,
             username=data.username,
             password=hashed_password,
             bio=data.bio,
             avatar=data.avatar,
             role=data.role,
         )
+        print("new user : ", new_user) 
 
         try:
             self.db.add(new_user)
@@ -275,9 +277,9 @@ class AuthService:
             log.error("error updating the profile fields for the user.")
             raise HTTPException(status_code=500, detail="Failed to update profile.")
 
-    async def delete_profile(self, username: str, user: UserContext) -> None:
+    async def delete_profile(self, user: UserContext) -> None:
         try:
-            query = select(User).where(User.username == username)
+            query = select(User).where(User.id == user.id)
             res = await self.db.execute(query)
             usr = res.scalar_one_or_none()
             if not usr:
@@ -285,12 +287,29 @@ class AuthService:
             _verify_actor(user, usr)
             await self.db.delete(usr)
             await self.db.commit()
-            log.info(f"User {username} deleted their profile.")
+            log.info(f"User {user.username} deleted their profile.")
         except HTTPException:
             raise
         except Exception:
             await self.db.rollback()
             log.error("error deleting the user profile.")
+            raise HTTPException(status_code=500, detail="Failed to delete profile.")
+    
+    async def delete_profile_by_admin(self, id: UUID) -> None:
+        try:
+            query = select(User).where(User.id == id)
+            res = await self.db.execute(query)
+            usr = res.scalar_one_or_none()
+            if not usr:
+                raise HTTPException(status_code=404, detail="User not found")
+            await self.db.delete(usr)
+            await self.db.commit()
+            log.info(f"User {id} deleted by admin.")
+        except HTTPException:
+            raise
+        except Exception:
+            await self.db.rollback()
+            log.error("error deleting the user profile by admin.")
             raise HTTPException(status_code=500, detail="Failed to delete profile.")
 
     # helper

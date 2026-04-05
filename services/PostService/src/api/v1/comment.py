@@ -35,7 +35,7 @@ def _comment_res(c: Comment) -> CommentResponse:
     )
 
 
-@router.post("", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
 async def create_comment(
     body: CommentPostRequest,
     response: Response,
@@ -68,7 +68,7 @@ async def create_comment(
     return res
 
 
-@router.post("/post/{post_id}", response_model=list[CommentResponse])
+@router.get("/{post_id}", response_model=list[CommentResponse])
 async def list_comments_for_post(
     post_id: UUID,
     body: CommentGetRequest,

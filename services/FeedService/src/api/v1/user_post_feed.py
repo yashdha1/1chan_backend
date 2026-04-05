@@ -35,7 +35,6 @@ async def update_weights(
     await svc.update_weights(user.id, body.tags, body.op)
     return {"ok": True}
 
-
 @router.post("/add_tag")
 async def tag_add(
     body: TagInsert,
@@ -48,7 +47,7 @@ async def tag_add(
     await svc.add_tag(body.tag)
     return {"ok": True}
 
-
+# this is done by the messaging queue: by the postal service.
 @router.post("/post_add_tags")
 async def post_add_tags(
     body: PostTagAdd,

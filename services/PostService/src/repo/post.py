@@ -125,6 +125,15 @@ class PostRepository:
         await self.db.refresh(post)
         return post
 
+    async def get_posts_by_username(self, username: str) -> list[Post]:
+        q = (
+            select(Post)
+            .where(Post.user_name == username)
+            .order_by(Post.created_at.desc())
+        )
+        res = await self.db.execute(q)
+        return list(res.scalars().all())
+
     async def search_posts(self, query: str):
         """FTS; order by rank and likes. redis cache"""
 

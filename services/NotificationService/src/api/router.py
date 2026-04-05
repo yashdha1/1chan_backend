@@ -4,4 +4,4 @@ from .v1.notification import router as notification_router
 
 router = APIRouter()
 
-router.include_router(notification_router, prefix="/notification")
+router.include_router(notification_router)

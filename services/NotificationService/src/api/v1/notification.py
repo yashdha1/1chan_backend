@@ -11,7 +11,7 @@ from ..dep import get_current_user
 
 router = APIRouter()
 
-
+# via the messaging queue: 
 @router.post("/send")
 async def send_notification(
     request: SendNotificationRequest,
