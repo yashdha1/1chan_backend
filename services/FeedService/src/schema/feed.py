@@ -15,7 +15,7 @@ class PostsViewed(BaseModel):
 
 
 class PostTagAdd(BaseModel):
-    post_id: int
+    post_id: str
     tags: List[str]
 
 

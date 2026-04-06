@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logger import logger as log
 from ..repo.post import PostRepository
-
+from .AsyncClient import AsyncClient
 
 class PostService:
     def __init__(self, db: AsyncSession, response: Response, r=None) -> None:
@@ -17,6 +17,8 @@ class PostService:
         try:
             res = await self.post_repo.create_post(post_data)
             log.info(f"Post created with ID: {res.id}")
+            await AsyncClient.map_post_to_feed(res)
+            log.info(f"Post-to-feed mapping updated for post ID via the interservice calls: {res.id}")
             return res
         except Exception as e:
             log.error(f"Error creating post: {e}")
@@ -93,6 +95,8 @@ class PostService:
 
     async def search_posts(self, query: str):
         try:
+            
+            print("Searching for:", query)
             res = await self.post_repo.search_posts(query)
             log.info(f"Search completed for query: {query} with {len(res)} results")
             return res

@@ -110,8 +110,9 @@ class FeedService:
             log.error(f"add_tag error: {e}")
             raise HTTPException(status_code=500, detail="Failed to add tag")
 
-    async def add_post_tags(self, post_id: int, tag_names: list[str]):
+    async def add_post_tags(self, post_id: str, tag_names: list[str]):
         try:
+            print(f"Adding tags to post_id {post_id}: {tag_names}")
             await self.repo.add_post_tags(post_id, tag_names)
         except Exception as e:
             log.error(f"add_post_tags error: {e}")

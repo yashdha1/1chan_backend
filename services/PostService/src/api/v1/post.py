@@ -161,6 +161,7 @@ async def search_posts(
     r: Redis = Depends(get_redis),
 ):
     svc = PostService(db, response, r)
+    print("Searching for:", body.query)
     posts = await svc.search_posts(body.query)
     items = [
         SearchPostItem(

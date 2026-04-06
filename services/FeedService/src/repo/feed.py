@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import select, func, distinct
 from sqlalchemy.dialects.postgresql import insert 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,15 +118,20 @@ class FeedRepository:
         await self.db.execute(stmt)
         await self.db.commit()
 
-    async def add_post_tags(self, post_id: int, tag_names: list[str]):
-        tag_rows = (
+    async def add_post_tags(self, post_id: str, tag_names: list[str]):
+        print("Running the query")
+        tag_rows = ( 
             await self.db.execute(select(tags).where(tags.name.in_(tag_names)))
         ).scalars().all()
+        print(f"Found tags: {tag_rows}")
         if not tag_rows:
             return
-        rows = [{"post_id": post_id, "tag_id": t.id} for t in tag_rows]
+        pid = uuid.UUID(post_id) if isinstance(post_id, str) else post_id
+        rows = [{"post_id": pid, "tag_id": t.id} for t in tag_rows]
+
         stmt = insert(post_tags).values(rows).on_conflict_do_nothing()
         await self.db.execute(stmt)
+        print("Post-tags inserted/updated")
         await self.db.commit()
 
     async def get_all_tags(self):

@@ -139,6 +139,7 @@ class PostRepository:
 
         # 1. check cache
         cache_key = f"search:{query}"
+        print("in the repo Searching cache for:", query)
         if self.cache:
             raw = await self.cache.get(cache_key)
             if raw:
@@ -153,8 +154,7 @@ class PostRepository:
                 except (json.JSONDecodeError, ValueError):
                     pass
 
-        # 2. cache miss
-        tsquery = func.plainto_tsquery("english", query)
+        tsquery = func.websearch_to_tsquery("english", query)
         statement = (
             select(Post)
             .where(Post.search_vector.op("@@")(tsquery))
@@ -165,8 +165,6 @@ class PostRepository:
         )
         res = await self.db.execute(statement)
         posts = list(res.scalars().all())
-
-        # 3. cache result
         if self.cache and posts:
             payload = json.dumps([str(p.id) for p in posts])
             await self.cache.set(cache_key, payload, ex=3600)
