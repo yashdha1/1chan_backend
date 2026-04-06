@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Literal
+from uuid import UUID
 
 
 class TagInsert(BaseModel):
@@ -15,7 +16,7 @@ class PostsViewed(BaseModel):
 
 
 class PostTagAdd(BaseModel):
-    post_id: int
+    post_id: str
     tags: List[str]
 
 
@@ -25,9 +26,9 @@ class UpdatePostTags(BaseModel):
 
 
 class GenerateFeed(BaseModel):
-    feed_type: Literal["suggested", "latest", "community"]
+    user_id : UUID 
 
 
 class FeedResponse(BaseModel):
-    post_ids: list[int]
+    post_ids: list[UUID]
     has_more: bool

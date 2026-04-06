@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logger import logger as log
 from ..repo.post import PostRepository
-
+from .AsyncClient import AsyncClient
 
 class PostService:
     def __init__(self, db: AsyncSession, response: Response, r=None) -> None:
@@ -17,6 +17,8 @@ class PostService:
         try:
             res = await self.post_repo.create_post(post_data)
             log.info(f"Post created with ID: {res.id}")
+            await AsyncClient.map_post_to_feed(res)
+            log.info(f"Post-to-feed mapping updated for post ID via the interservice calls: {res.id}")
             return res
         except Exception as e:
             log.error(f"Error creating post: {e}")
@@ -69,11 +71,26 @@ class PostService:
             log.error(f"Error patching post: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
-    async def like_post(self, post_id: UUID, user_id: UUID):
+    async def like_post(self, post_id: UUID, user_id: UUID, user_name):
         try:
-            res = await self.post_repo.like_post(post_id, user_id)
+            await self.post_repo.like_post(post_id, user_id)
             log.info(f"Post liked: {post_id} by {user_id}")
-            return res
+            post_details = await self.post_repo.get_post_by_id(post_id)
+
+             # send notification to the posts publisher: 
+            if post_details and post_details.user_id != user_id : 
+                await AsyncClient.send_notification({
+                    "user_id": str(post_details.user_id),        #kisko bheja 
+                    "publisher_id": str(user_id),   #kisne bheja
+                    "publisher_name": str(user_name),    # bhejne wale ka naam    
+                    "user_name": str(user_name),  # for like notification, the user_name and publisher_name will be same, but for comment they will be different.
+                    "type": "like",                             
+                    "post_id": str(post_id), # konsa post  
+                    "post_title": post_details.title  # post ka title
+                })
+                log.info(f"Notification sent for like on post ID: {post_id} to user ID: {post_details.user_id}")
+            return post_details
+ 
         except HTTPException:
             raise
         except Exception as e:
@@ -93,6 +110,8 @@ class PostService:
 
     async def search_posts(self, query: str):
         try:
+            
+            print("Searching for:", query)
             res = await self.post_repo.search_posts(query)
             log.info(f"Search completed for query: {query} with {len(res)} results")
             return res
@@ -105,4 +124,19 @@ class PostService:
             return await self.post_repo.get_posts_by_username(username)
         except Exception:
             log.exception(f"Error fetching posts for user: {username}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    async def get_post_liked_by(self, post_id: UUID): 
+        try : 
+            return await self.post_repo.get_post_liked_by(post_id)
+        except Exception:
+            log.exception(f"Error fetching liked by for post: {post_id}")
+            raise HTTPException(status_code=500, detail="Internal Server Error") 
+
+    async def build_feed(self, user_id: UUID, feed_type: str):
+        try:
+            print(f"Building feed for user ID {user_id} with feed type {feed_type}")
+            return await self.post_repo.build_feed(user_id, feed_type)
+        except Exception:
+            log.exception(f"Error building feed for user: {user_id}")
             raise HTTPException(status_code=500, detail="Internal Server Error")

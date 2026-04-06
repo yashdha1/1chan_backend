@@ -7,6 +7,7 @@ from sqlalchemy import select, func
 from ..models.post import Post, PostLike
 from fastapi import HTTPException
 from ..core.logger import logger as log
+from ..service.AsyncClient import AsyncClient
 
 
 class PostRepository:
@@ -96,11 +97,10 @@ class PostRepository:
             return post
 
         self.db.add(PostLike(post_id=post_id, user_id=user_id))
-        post.like_count = int(post.like_count or 0) + 1
+        post.like_count = int(post.like_count or 0) + 1  
         self.db.add(post)
         await self.db.commit()
         await self.db.refresh(post)
-        return post
 
     async def unlike_post(self, post_id: UUID, user_id: UUID) -> Post:
         q = select(Post).where(Post.id == post_id)
@@ -139,6 +139,7 @@ class PostRepository:
 
         # 1. check cache
         cache_key = f"search:{query}"
+        print("in the repo Searching cache for:", query)
         if self.cache:
             raw = await self.cache.get(cache_key)
             if raw:
@@ -153,8 +154,7 @@ class PostRepository:
                 except (json.JSONDecodeError, ValueError):
                     pass
 
-        # 2. cache miss
-        tsquery = func.plainto_tsquery("english", query)
+        tsquery = func.websearch_to_tsquery("english", query)
         statement = (
             select(Post)
             .where(Post.search_vector.op("@@")(tsquery))
@@ -165,11 +165,44 @@ class PostRepository:
         )
         res = await self.db.execute(statement)
         posts = list(res.scalars().all())
-
-        # 3. cache result
         if self.cache and posts:
             payload = json.dumps([str(p.id) for p in posts])
             await self.cache.set(cache_key, payload, ex=3600)
             log.info(f"Cache saved for query: {query} len={len(posts)}")
 
         return posts
+    
+    async def get_post_liked_by(self, post_id: UUID) -> list[str]:
+        """fetch the list of user who like the post with ID post_id"""
+        q = (
+            select(PostLike)
+            .where(PostLike.post_id == post_id)
+            .join(Post, PostLike.user_id == Post.user_id)
+        )
+        res = await self.db.execute(q).all()
+        users = [row[0].user_name for row in res if row[0].user_name]
+        return users
+    
+    async def build_feed(self, user_id: UUID, feed_type) -> list[Post]:
+        try:
+            feed = await AsyncClient.get_feed_for_user(str(user_id), feed_type)
+            if not feed:
+                log.info(f"No feed data received for user ID {user_id} and feed type {feed_type}")
+                return []
+            raw_post_ids = feed.get("post_ids", [])
+            post_ids = [UUID(str(post_id)) for post_id in raw_post_ids]
+            log.info(
+                f"Received feed data for user ID {user_id} and feed type {feed_type}: {raw_post_ids}"
+            )
+
+            posts = await self.get_posts_by_ids_ordered(post_ids)
+            log.info(f"Build feed repo: {feed_type} with {len(post_ids)} post IDs")
+
+            # TODO: case where the ids are missign is rare and only exists in the development
+            # due to the seeding of the database. Monitor once deployed. 
+            
+            log.info(f"Successfully built feed for user ID {user_id} and feed type {feed_type} with {len(posts)} posts")
+            return posts
+        except Exception as e:
+            log.error(f"Error building feed for user ID {user_id} and feed type {feed_type}: {e}")
+            raise HTTPException(status_code=500, detail="Failed to build feed")

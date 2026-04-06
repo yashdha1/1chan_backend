@@ -1,10 +1,12 @@
 from uuid import UUID
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, WebSocket
 import jwt
 from pydantic import BaseModel
 
 from ..core.config import settings
+
+INVALID_TOKEN_DETAIL = "Invalid or expired token"
 
 
 class UserContext(BaseModel):
@@ -22,7 +24,7 @@ def _decode_access_token(token: str) -> UserContext:
             algorithms=[settings.JWT_ALGORITHM],
         )
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_DETAIL)
 
     uid = payload.get("id")
     uname = payload.get("username")
@@ -40,5 +42,12 @@ def _decode_access_token(token: str) -> UserContext:
 def get_current_user(request: Request) -> UserContext:
     token = request.cookies.get("access_token")
     if not token:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_DETAIL)
+    return _decode_access_token(token)
+
+# for the socket connections : 
+def get_current_user_ws(websocket: WebSocket) -> UserContext:
+    token = websocket.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_DETAIL)
     return _decode_access_token(token)

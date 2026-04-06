@@ -47,13 +47,13 @@ async def tag_add(
     await svc.add_tag(body.tag)
     return {"ok": True}
 
-# this is done by the messaging queue: by the postal service.
+# internal API
 @router.post("/post_add_tags")
 async def post_add_tags(
-    body: PostTagAdd,
-    user: UserContext = Depends(get_current_user),
+    body: PostTagAdd, 
     db: AsyncSession = Depends(get_db),
 ):
+    print("someones here.")
     svc = FeedService(db)
     await svc.add_post_tags(body.post_id, body.tags)
     return {"ok": True}

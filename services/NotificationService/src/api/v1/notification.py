@@ -1,17 +1,35 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.exceptions import HTTPException
 
 from ...lib.db import get_db
+from ...lib.ws_manager import notification_ws_manager
 from ...schema.notification import SendNotificationRequest, MarkAsReadRequest
 from ...service.notification import NotificationService 
-from ..dep import get_current_user
+from ..dep import get_current_user, get_current_user_ws
 
 
 
 router = APIRouter()
 
-# via the messaging queue: 
+
+@router.websocket("/ws/live")
+async def notifications_live_socket(websocket: WebSocket):
+    try:
+        user = get_current_user_ws(websocket)
+    except HTTPException:
+        await websocket.close(code=4401)
+        return
+
+    uid = str(user.id)
+    await notification_ws_manager.connect(websocket, uid)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        notification_ws_manager.disconnect(websocket, uid)
+
+# via the pubsub : 
 @router.post("/send")
 async def send_notification(
     request: SendNotificationRequest,
@@ -35,7 +53,5 @@ async def get_notifications_for_user(
     db: AsyncSession = Depends(get_db), 
     user = Depends(get_current_user)
 ) : 
-    if not user: 
-        raise HTTPException(status_code=401, detail="Unauthorized")
     res = await NotificationService.get_notifications_for_user(db, user.id, offset)
     return res 
