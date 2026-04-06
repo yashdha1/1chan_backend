@@ -46,6 +46,7 @@ class CommentRepository:
             user_avatar=user_avatar,
             body=body,
         )
+        print("comment created in repo")
         self.db.add(comment)
         post.comment_count = int(post.comment_count or 0) + 1
         self.db.add(post)
@@ -62,7 +63,7 @@ class CommentRepository:
             .where(Comment.post_id == post_id, Comment.parent_id == parent_id)
             .order_by(Comment.like_count.desc())
             .offset(ofset)
-            .limit(15)
+            .limit(10)
         )
         res = await self.db.execute(q)
         return list(res.scalars().all())

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +13,6 @@ from ...schema.comments.comment import (
     CommentPostRequest,
     CommentResponse,
     CommentUnlikeRequest,
-    CommentGetRequest
 )
 from ...service.comment import CommentService
 from .post_manager import manager
@@ -35,6 +34,7 @@ def _comment_res(c: Comment) -> CommentResponse:
     )
 
 
+@router.post("", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
 async def create_comment(
     body: CommentPostRequest,
@@ -71,13 +71,16 @@ async def create_comment(
 @router.get("/{post_id}", response_model=list[CommentResponse])
 async def list_comments_for_post(
     post_id: UUID,
-    body: CommentGetRequest,
     response: Response,
+    offset: int = Query(default=0, ge=0),
+    parent_id: UUID | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
 ):
+    """gets comments for the specified post. DEFAULT -> DESC order by like"""
+    print("in the api endpoint")
     svc = CommentService(db, response, r)
-    comments = await svc.list_for_post(post_id, body.offset, body.parent_id)
+    comments = await svc.list_for_post(post_id, offset, parent_id)
     return [_comment_res(c) for c in comments]
 
 

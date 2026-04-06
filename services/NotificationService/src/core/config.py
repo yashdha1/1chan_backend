@@ -26,6 +26,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     PROJECT_NAME: str = "Notification_Service"
+
+    REDIS_PS_HOST: str = "localhost"
+    REDIS_PS_PORT: int = 6382
+    REDIS_PS_DB: int = 0
+    
     JWT_PUBLIC_KEY: str = ""
     JWT_PUBLIC_KEY_FILE: Path | None = None
     JWT_ALGORITHM: str = "RS256"

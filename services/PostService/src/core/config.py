@@ -31,9 +31,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "RS256"
 
 
-    # interservice URLs : 
+    # interservice URLs : in production this would be better : 
     FEED_SERVICE_URL : str = "http://localhost:8004/api/v1/feed"
-    NOTIFICATION_SERVICE_URL : str = "http://localhost:8002/api/v1/notification"
+    NOTIFICATION_SERVICE_URL : str = "http://localhost:8002/api/v1/notifications"
     AUTH_SERVICE_URL : str = "http://localhost:8001/api/v1"
 
     @model_validator(mode="after")

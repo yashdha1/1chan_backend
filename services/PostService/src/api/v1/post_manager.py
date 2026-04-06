@@ -25,8 +25,20 @@ class ConnectionManager:
             del self.post_connections[post_id]
 
     async def broadcast_post(self, post_id: str, payload: dict):
-        for ws in self.post_connections.get(post_id, []):
-            await ws.send_text(json.dumps(payload))
+        conns = list(self.post_connections.get(post_id, []))
+        if not conns:
+            return
+
+        dead: list[WebSocket] = []
+        msg = json.dumps(payload)
+        for ws in conns:
+            try:
+                await ws.send_text(msg)
+            except Exception:
+                dead.append(ws)
+
+        for ws in dead:
+            self.disconnect_post(ws, post_id)
 
     def _thread_key(self, post_id: str, comment_id: str) -> str:
         return f"{post_id}:{comment_id}"
@@ -47,8 +59,20 @@ class ConnectionManager:
 
     async def broadcast_thread(self, post_id: str, comment_id: str, payload: dict):
         key = self._thread_key(post_id, comment_id)
-        for ws in self.thread_connections.get(key, []):
-            await ws.send_text(json.dumps(payload))
+        conns = list(self.thread_connections.get(key, []))
+        if not conns:
+            return
+
+        dead: list[WebSocket] = []
+        msg = json.dumps(payload)
+        for ws in conns:
+            try:
+                await ws.send_text(msg)
+            except Exception:
+                dead.append(ws)
+
+        for ws in dead:
+            self.disconnect_thread(ws, post_id, comment_id)
 
 
 manager = ConnectionManager()

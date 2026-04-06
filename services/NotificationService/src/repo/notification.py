@@ -15,7 +15,10 @@ async def send_notification(db, req):
         raise HTTPException(status_code=500, detail="DB error sending notification.")
     
 async def mark_as_read(db, req, user_id):
-    stmt = select(Notification).where(Notification.id == req.notification_id and Notification.user_id == user_id)
+    stmt = select(Notification).where(
+        Notification.id == req.notification_id,
+        Notification.user_id == user_id,
+    )
     result = await db.execute(stmt)
     notification = result.scalar_one_or_none()
 
