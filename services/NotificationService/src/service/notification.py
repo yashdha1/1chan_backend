@@ -5,7 +5,7 @@ from ..core.logger import logger as log
 from ..models.notifcation import Notification
 from ..schema.notification import MarkAsReadRequest, SendNotificationRequest
 from ..repo.notification import send_notification , mark_as_read, get_notifications_for_user
-
+from ..lib.message_queue import get_redis
 class NotificationService:
     @staticmethod
     async def send_notification(db, req: SendNotificationRequest) -> Notification:
@@ -13,6 +13,11 @@ class NotificationService:
         if not res :
             log.error("Error sending notification") 
             raise HTTPException(status_code=500, detail="Failed to send notification")
+        else : 
+            # publish a message
+            redis = get_redis()
+            await redis.publish("notifications", str(res.id))
+            log.info(f"Notification sent with ID: {res.id}")
         return res
 
     

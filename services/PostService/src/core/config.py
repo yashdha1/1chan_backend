@@ -33,6 +33,8 @@ class Settings(BaseSettings):
 
     # interservice URLs : 
     FEED_SERVICE_URL : str = "http://localhost:8004/api/v1/feed"
+    NOTIFICATION_SERVICE_URL : str = "http://localhost:8002/api/v1/notification"
+    AUTH_SERVICE_URL : str = "http://localhost:8001/api/v1"
 
     @model_validator(mode="after")
     def _resolve_jwt_pem_keys(self) -> "Settings":

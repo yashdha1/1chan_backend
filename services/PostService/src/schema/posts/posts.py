@@ -71,4 +71,10 @@ class SearchPostItem(BaseModel):
 
 
 class SearchPostsResponse(BaseModel):
-    items: list[SearchPostItem]
+    items: list[SearchPostItem]  
+
+class LikedByResponse(BaseModel):
+    users: list[str]
+
+class FeedPostResponse(BaseModel):
+    posts : list[PostResponse]

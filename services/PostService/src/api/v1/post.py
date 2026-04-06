@@ -9,12 +9,14 @@ from ...lib.db import get_db
 from ...lib.redis import get_redis
 from ...models.post import Post
 from ...schema.posts.posts import (
+    LikedByResponse,
     PatchPostRequest,
     CreatePostRequest,
     PostResponse,
     SearchPostItem,
     SearchPostsResponse,
     SearchPostRequest,
+    FeedPostResponse
 )
 from ...service.post import PostService
 from .post_manager import manager
@@ -130,7 +132,7 @@ async def like_post(
     user: UserContext = Depends(get_current_user),
 ):
     svc = PostService(db, response, r)
-    post = await svc.like_post(post_id, user.id)
+    post = await svc.like_post(post_id, user.id, user.uname)
     await manager.broadcast_post(
         str(post_id), {"event": "like_update", "like_count": int(post.like_count or 0)}
     )
@@ -174,3 +176,28 @@ async def search_posts(
     ]
     return SearchPostsResponse(items=items)
 
+@router.get("/{post_id}/liked_by", response_model=LikedByResponse)
+async def get_post_liked_by(
+    post_id: UUID,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+):
+    svc = PostService(db, response, r)
+    users = await svc.get_post_liked_by(post_id)
+    return users
+
+@router.get("/build_feed/{feed_type}", response_model=FeedPostResponse) 
+async def build_feed(
+    feed_type: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = PostService(db, response, r)
+    if feed_type not in ("suggested", "latest", "community"): 
+        return Response(status_code=status.HTTP_400_BAD_REQUEST, content="Invalid feed type")
+    posts = await svc.build_feed(user.id, feed_type) 
+
+    return FeedPostResponse(posts=[_post_res(p) for p in posts])

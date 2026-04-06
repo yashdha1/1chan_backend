@@ -16,7 +16,6 @@ class Notification(Base) :
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, index=True)
     user_id =  Column(UUID(as_uuid=True), nullable=False)
 
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id"), nullable=False)
     publisher_id = Column(UUID(as_uuid=True), nullable=False)
     publisher_name = Column(String, nullable=False) 
     user_name = Column(String, nullable=False)

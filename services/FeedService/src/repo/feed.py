@@ -56,8 +56,9 @@ class FeedRepository:
         if exclude_post_ids:
             conditions.append(post_tags.post_id.notin_(exclude_post_ids))
         q = (
-            select(distinct(post_tags.post_id))
+            select(post_tags.post_id)
             .where(*conditions)
+            .group_by(post_tags.post_id)
             .order_by(post_tags.post_id.desc())
             .limit(limit)
         )
@@ -70,22 +71,24 @@ class FeedRepository:
         conditions = [post_tags.post_id.notin_(self._unseen_subq(user_id))]
         if exclude_ids:
             conditions.append(post_tags.post_id.notin_(exclude_ids))
-        q = (
-            select(distinct(post_tags.post_id))
+        distinct_posts = (
+            select(post_tags.post_id)
             .where(*conditions)
-            .order_by(func.random())
-            .limit(limit)
+            .group_by(post_tags.post_id)
+            .subquery()
         )
+        q = select(distinct_posts.c.post_id).order_by(func.random()).limit(limit)
         rows = (await self.db.execute(q)).scalars().all()
         return list(rows)
 
     async def get_cold_start_pool(self, user_id, limit: int) -> list[int]:
-        q = (
-            select(distinct(post_tags.post_id))
+        distinct_posts = (
+            select(post_tags.post_id)
             .where(post_tags.post_id.notin_(self._unseen_subq(user_id)))
-            .order_by(func.random())
-            .limit(limit)
+            .group_by(post_tags.post_id)
+            .subquery()
         )
+        q = select(distinct_posts.c.post_id).order_by(func.random()).limit(limit)
         result = await self.db.execute(q)
         return result.scalars().all()
 
@@ -93,8 +96,8 @@ class FeedRepository:
         q = (
             select(post_tags.post_id)
             .where(post_tags.post_id.notin_(self._unseen_subq(user_id)))
-            .order_by(post_tags.created_at.desc())
-            .distinct()
+            .group_by(post_tags.post_id)
+            .order_by(func.max(post_tags.created_at).desc(), post_tags.post_id.desc())
             .limit(limit)
         )
         rows = (await self.db.execute(q)).scalars().all()
@@ -102,10 +105,15 @@ class FeedRepository:
 
     async def get_community_pool(self, user_id, limit: int) -> list[int]:
         q = (
-            select(distinct(post_tags.post_id))
+            select(post_tags.post_id)
             .select_from(post_tags.__table__.join(tags, post_tags.tag_id == tags.id))
             .where(post_tags.post_id.notin_(self._unseen_subq(user_id)))
-            .order_by(tags.post_count.desc(), post_tags.post_id.desc())
+            .group_by(post_tags.post_id)
+            .order_by(
+                func.max(tags.post_count).desc(),
+                func.max(post_tags.created_at).desc(),
+                post_tags.post_id.desc(),
+            )
             .limit(limit)
         )
         rows = (await self.db.execute(q)).scalars().all()

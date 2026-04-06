@@ -8,12 +8,11 @@ class SendNotificationRequest(BaseModel):
 
     publisher_id: UUID 
     publisher_name: str
-    user_name: str 
-    user_avatar: str  
+    user_name: str  
     type: str 
     post_id: UUID 
-    post_title: str 
-    body: str | None = None # can be a like wala comment
+    post_title: str
+    body: str | None = None
 
 class MarkAsReadRequest(BaseModel):
     notification_id: UUID

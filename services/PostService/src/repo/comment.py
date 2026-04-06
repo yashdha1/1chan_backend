@@ -111,6 +111,11 @@ class CommentRepository:
         await self.db.refresh(comment)
         return comment
 
+    async def get_comment_by_id(self, comment_id: UUID) -> Comment | None:
+        q = select(Comment).where(Comment.id == comment_id)
+        res = await self.db.execute(q)
+        return res.scalar_one_or_none()
+
     async def unlike_comment(self, comment_id: UUID, user_id: UUID) -> Comment:
         cq = select(Comment).where(Comment.id == comment_id)
         cr = await self.db.execute(cq)
