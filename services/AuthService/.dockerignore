@@ -1,0 +1,30 @@
+__pycache__/
+*.pyo
+
+.env
+.venv
+venv/
+env/
+
+.git/
+.gitignore
+
+Dockerfile
+.dockerignore
+ 
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporary files
+tmp/
+temp/

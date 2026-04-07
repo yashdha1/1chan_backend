@@ -12,3 +12,10 @@
     cd scripts 
     ./start_dev.bat
 ```
+
+
+### production 
+
+```shell
+    docker compose up 
+```

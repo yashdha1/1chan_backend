@@ -9,6 +9,7 @@ from ..models.comment import Comment
 from ..repo.comment import CommentRepository
 from ..repo.post import PostRepository
 from .AsyncClient import AsyncClient
+from ..lib.publish import publish_notification
 
 INTERNAL_SERVER_ERROR = "Internal Server Error"
 
@@ -47,7 +48,7 @@ class CommentService:
 
             # 1. notify post owner
             if post and str(post.user_id) not in notified:
-                await AsyncClient.send_notification({**base, "user_id": str(post.user_id), "type": "comment"})
+                await publish_notification(**base, user_id=str(post.user_id), type="comment")
                 notified.add(str(post.user_id))
                 log.info(f"Notification sent to post owner with ID: {post.user_id} for comment ID: {res.id}")
 
@@ -55,7 +56,7 @@ class CommentService:
             if parent_id:
                 parent = await self.comment_repo.get_comment_by_id(parent_id)
                 if parent and str(parent.user_id) not in notified:
-                    await AsyncClient.send_notification({**base, "user_id": str(parent.user_id), "type": "reply"})
+                    await publish_notification(**base, user_id=str(parent.user_id), type="reply")
                     notified.add(str(parent.user_id))
                     log.info(f"Notification sent to parent comment author with ID: {parent.user_id} for comment ID: {res.id}")
 
@@ -63,7 +64,7 @@ class CommentService:
             for username in set(re.findall(r"@(\w+)", body)):
                 mentioned = await AsyncClient.get_user_by_username(username)
                 if mentioned and str(mentioned["id"]) not in notified:
-                    await AsyncClient.send_notification({**base, "user_id": str(mentioned["id"]), "type": "mention", "body": body})
+                    await publish_notification(**base, user_id=str(mentioned["id"]), type="mention", body=body)
                     notified.add(str(mentioned["id"]))
                     log.info(f"Notification sent to mentioned user with ID: {mentioned['id']} for comment ID: {res.id}")
 

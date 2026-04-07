@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.logger import logger as log
 from ..repo.post import PostRepository
 from .AsyncClient import AsyncClient
+from ..lib.publish import publish_notification
 
 class PostService:
     def __init__(self, db: AsyncSession, response: Response, r=None) -> None:
@@ -95,15 +96,25 @@ class PostService:
 
              # send notification to the posts publisher: 
             if post_details and post_details.user_id != user_id : 
-                await AsyncClient.send_notification({
-                    "user_id": str(post_details.user_id),        #kisko bheja 
-                    "publisher_id": str(user_id),   #kisne bheja
-                    "publisher_name": str(user_name),    # bhejne wale ka naam    
-                    "user_name": str(user_name),  # for like notification, the user_name and publisher_name will be same, but for comment they will be different.
-                    "type": "like",                             
-                    "post_id": str(post_id), # konsa post  
-                    "post_title": post_details.title  # post ka title
-                })
+                # await AsyncClient.send_notification({
+                #     "user_id": str(post_details.user_id),        #kisko bheja 
+                #     "publisher_id": str(user_id),   #kisne bheja
+                #     "publisher_name": str(user_name),    # bhejne wale ka naam    
+                #     "user_name": str(user_name),  # for like notification, the user_name and publisher_name will be same, but for comment they will be different.
+                #     "type": "like",                             
+                #     "post_id": str(post_id), # konsa post  
+                #     "post_title": post_details.title  # post ka title
+                # })
+                await publish_notification(
+                    user_id=str(post_details.user_id),        #kisko bheja
+                    publisher_id=str(user_id),   #kisne bheja
+                    publisher_name=str(user_name),    # bhejne wale ka naam
+                    user_name=str(user_name),  # for like notification, the user_name and publisher_name will be same, but for comment they will be different.
+                    type="like",                             
+                    post_id=str(post_id), # konsa post
+                    post_title=post_details.title  # post ka title
+                )
+
                 log.info(f"Notification sent for like on post ID: {post_id} to user ID: {post_details.user_id}")
             return post_details
  

@@ -1,4 +1,3 @@
-from urllib.parse import quote
 import httpx
 from ..core.config import settings
  
@@ -38,16 +37,17 @@ class AsyncClient:
             print(f"HTTP error while retrieving feed for user ID {user_id}: {e}")
             return None
     
-    @staticmethod
-    async def send_notification(data) : 
-        try:
-            async with httpx.AsyncClient() as client:
-                url = f"{settings.NOTIFICATION_SERVICE_URL}/send"
-                response = await client.post(url, json=data)
-                response.raise_for_status()
-                print(f"Successfully sent notification with data: {data}")
-        except httpx.HTTPError as e:
-            print(f"HTTP error while sending notification: {e}")
+    ############ propriatery ############## 
+    # @staticmethod
+    # async def send_notification(data) : 
+    #     try:
+    #         async with httpx.AsyncClient() as client:
+    #             url = f"{settings.NOTIFICATION_SERVICE_URL}/send"
+    #             response = await client.post(url, json=data)
+    #             response.raise_for_status()
+    #             print(f"Successfully sent notification with data: {data}")
+    #     except httpx.HTTPError as e:
+    #         print(f"HTTP error while sending notification: {e}")
 
     @staticmethod
     async def get_user_by_username(username: str) -> dict | None:
