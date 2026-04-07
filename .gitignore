@@ -44,13 +44,14 @@ htmlcov/
 .tox/
 .pytest_cache/
 .nox/
-
 *.orig
 *.rej
 *.swp
 thinket.md
 .ruff_cache/
 docs/
+
+check_schema.py
 
 seed_auth_db.py
 seed_post_db.py

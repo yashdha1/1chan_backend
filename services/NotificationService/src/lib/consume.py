@@ -6,14 +6,13 @@ from redis.asyncio import Redis
 import json
 from uuid import UUID
 from .db import AsyncSessionLocal
-from ..models.post import Post
-from ..models.comment import Comment
 from ..core.logger import logger as log
-from sqlalchemy import update
+from ..schema.notification import SendNotificationRequest
+from ..service.notification import NotificationService
 
-STREAM = "user:profile:updated"
-GROUP = "post-service-group"
-CONSUMER = "post-service-1"   
+STREAM = "group:notification:send"
+GROUP = "notification-service-group"
+CONSUMER = "notification-service-1"   
 
 
 redis_client = Redis(
@@ -35,33 +34,22 @@ async def ensure_group():
 
 
 async def process_event(event_data: dict):
-    try : 
-        user_id = UUID(str(event_data["user_id"]))
-        username = event_data["username"]
-        profile_image = event_data.get("avatar")
+    try:
+        request = SendNotificationRequest(
+            user_id=UUID(str(event_data["user_id"])),
+            publisher_id=UUID(str(event_data["publisher_id"])),
+            publisher_name=event_data["publisher_name"],
+            user_name=event_data["user_name"],
+            type=event_data["type"],
+            post_id=UUID(str(event_data["post_id"])),
+            post_title=event_data["post_title"],
+            body=event_data.get("body"),
+        )
 
-        # Update denormalized user fields in posts table
         async with AsyncSessionLocal() as db:
-            # update the posts
-            stmt_1 = (
-                update(Post)
-                .where(Post.user_id == user_id)
-                .values(user_name=username, user_avatar=profile_image)
-            )
+            await NotificationService.send_notification(db, request)
 
-            # update the comments 
-            stmt_2 = (
-                update(Comment)
-                .where(Comment.user_id == user_id)
-                .values(user_name=username, user_avatar=profile_image)
-            )
-            await db.execute(stmt_1)
-            log.info(f"Updated the username/avatar in POSTS for user_id={user_id}")
-            await db.execute(stmt_2)
-            log.info(f"Updated the username/avatar in COMMENTS for user_id={user_id}")
-            await db.commit()
-            
-    except Exception as e: 
+    except Exception as e:
         log.error(f"Error processing event for user {event_data.get('user_id')}: {e}")
 
 async def consume():

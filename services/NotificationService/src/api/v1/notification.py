@@ -30,7 +30,6 @@ async def notifications_live_socket(websocket: WebSocket):
         notification_ws_manager.disconnect(websocket, uid)
 
 # Send and deliver notifications via websocket manager.
-@router.post("/send")
 async def send_notification(
     request: SendNotificationRequest,
     db: AsyncSession = Depends(get_db)
