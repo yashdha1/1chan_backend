@@ -34,6 +34,8 @@ async def get_profile(
     db: AsyncSession = Depends(get_db),
 ):
     svc = AuthService(db, response)
+    username = username.split(" ")[0]
+    print(f"Fetching profile for username reeq by the notification: {username}")
     user = await svc.get_profile(username)
     return Profile(user=user)
 
@@ -46,7 +48,7 @@ async def update_profile(
     user: UserContext = Depends(get_current_user),
 ):
     svc = AuthService(db, response, r)
-    username = user.username # just get the user from the username only : 
+    username = user.uname # just get the user from the username only : 
     updated = await svc.update_profile(username, body, user)
     return Profile(user=updated)
 

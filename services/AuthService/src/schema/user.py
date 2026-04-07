@@ -38,5 +38,6 @@ class Profile(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
+    username: str
     bio: str
     avatar: str

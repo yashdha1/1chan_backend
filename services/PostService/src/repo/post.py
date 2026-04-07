@@ -168,7 +168,8 @@ class PostRepository:
                         return posts
                 except (json.JSONDecodeError, ValueError):
                     pass
-
+        
+        # 2. SEARCH q
         tsquery = func.websearch_to_tsquery("english", query)
         statement = (
             select(Post)
@@ -177,9 +178,12 @@ class PostRepository:
                 func.ts_rank(Post.search_vector, tsquery).desc(),
                 Post.like_count.desc(),
             )
+            .limit(10)
         )
         res = await self.db.execute(statement)
         posts = list(res.scalars().all())
+
+        # 3. cache hit
         if self.cache and posts:
             payload = json.dumps([str(p.id) for p in posts])
             await self.cache.set(cache_key, payload, ex=3600)

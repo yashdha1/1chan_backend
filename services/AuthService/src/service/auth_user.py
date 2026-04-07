@@ -19,6 +19,7 @@ from ..schema.user import (
     UserRegistrationRequest,
     ProfileUpdateRequest,
 )
+from ..lib.publish import publish_user_updated
 
 
 def _role_claim(role) -> str:
@@ -248,20 +249,31 @@ class AuthService:
         self, username: str, body: ProfileUpdateRequest, user: UserContext
     ) -> UserOut:
         try:
-            query = select(User).where(User.username == username)
+            query = select(User).where(User.id == user.id)
             result = await self.db.execute(query)
             usr = result.scalar_one_or_none()
 
             if not usr:
                 raise HTTPException(status_code=404, detail="User not found")
             _verify_actor(user, usr)
-            # TODO: Add a httpx call to update this in the Content service:
+            if body.username != usr.username:
+                exists_query = select(User).where(User.username == body.username)
+                exists_result = await self.db.execute(exists_query)
+                exists_user = exists_result.scalar_one_or_none()
+                if exists_user and exists_user.id != usr.id:
+                    raise HTTPException(status_code=409, detail="Username already exists")
+
+            usr.username = body.username
             usr.bio = body.bio
             usr.avatar = body.avatar
 
             await self.db.commit()
             await self.db.refresh(usr)
             log.info(f"User {username} updated their profile.")
+
+            # publish the event
+            await publish_user_updated(str(usr.id), usr.username, usr.avatar or "")
+            log.info(f"Published user profile update event for user {username}.")
             return UserOut(
                 id=usr.id,
                 username=usr.username,
