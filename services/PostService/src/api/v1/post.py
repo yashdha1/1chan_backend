@@ -185,7 +185,7 @@ async def get_post_liked_by(
 ):
     svc = PostService(db, response, r)
     users = await svc.get_post_liked_by(post_id)
-    return users
+    return LikedByResponse(users=users)
 
 @router.get("/build_feed/{feed_type}", response_model=FeedPostResponse) 
 async def build_feed(

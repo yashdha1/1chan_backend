@@ -175,12 +175,13 @@ class PostRepository:
     async def get_post_liked_by(self, post_id: UUID) -> list[str]:
         """fetch the list of user who like the post with ID post_id"""
         q = (
-            select(PostLike)
+            select(Post.user_name)
+            .join(PostLike, PostLike.user_id == Post.user_id)
             .where(PostLike.post_id == post_id)
-            .join(Post, PostLike.user_id == Post.user_id)
+            .distinct()
         )
-        res = await self.db.execute(q).all()
-        users = [row[0].user_name for row in res if row[0].user_name]
+        res = await self.db.execute(q)
+        users = [user_name for user_name in res.scalars().all() if user_name]
         return users
     
     async def build_feed(self, user_id: UUID, feed_type) -> list[Post]:

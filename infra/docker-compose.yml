@@ -25,14 +25,6 @@ services:
   #   ports:
   #     - "6381:6379"
   #   restart: unless-stopped
-  
-  # notifications pub sub wala scene
-  redis-notication: 
-    image: redis:7-alpine
-    container_name: onechan-redis-notification
-    ports:
-      - "6382:6379"
-    restart: unless-stopped
 
   # authentication service 
   postgres-auth:
