@@ -334,6 +334,7 @@ class AuthService:
             "id": str(data.id),
             "username": data.username,
             "role": role,
+            "iss": "1chan-server",
             "avatar": data.avatar or "",
             "iat": int(now.timestamp()),
             "exp": int(access_exp.timestamp()),
@@ -342,6 +343,7 @@ class AuthService:
             "id": str(data.id),
             "username": data.username,
             "role": role,
+            "iss": "1chan-server",
             "iat": int(now.timestamp()),
             "exp": int(refresh_exp.timestamp()),
         }

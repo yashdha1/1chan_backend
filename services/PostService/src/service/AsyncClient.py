@@ -1,4 +1,3 @@
-from urllib.parse import quote
 import httpx
 from ..core.config import settings
  

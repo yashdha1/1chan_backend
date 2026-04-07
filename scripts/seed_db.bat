@@ -4,6 +4,13 @@ setlocal
 set "SCRIPT_DIR=%~dp0"
 set "PYTHONPATH=%SCRIPT_DIR%;%PYTHONPATH%"
 
+where uv >nul 2>nul
+if errorlevel 1 (
+  echo 'uv' is not installed or not on PATH.
+  echo Install it: https://docs.astral.sh/uv/getting-started/installation/
+  exit /b 1
+)
+
 echo Seeding all databases...
 echo.
 
@@ -13,6 +20,14 @@ uv run --with faker python "seed_auth_db.py"
 if errorlevel 1 (
   popd
   echo AuthDB seeding failed.
+  exit /b 1
+)
+
+echo Seeding admin bootstrap user...
+uv run python "seed_admin.py"
+if errorlevel 1 (
+  popd
+  echo Admin seeding failed.
   exit /b 1
 )
 popd

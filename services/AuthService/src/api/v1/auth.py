@@ -6,7 +6,6 @@ from ...lib.db import get_db
 from ...lib.redis import get_redis
 
 from ...schema.user import (
-    Profile,
     UserLoginRequest,
     UserLoginResponse,
     UserRegistrationRequest,

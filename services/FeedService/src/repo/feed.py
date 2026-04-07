@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import select, func, distinct
+from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert 
 from sqlalchemy.ext.asyncio import AsyncSession
 
