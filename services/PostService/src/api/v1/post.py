@@ -119,7 +119,8 @@ async def delete_post(
     user: UserContext = Depends(get_current_user),
 ):
     svc = PostService(db, response, r)
-    await svc.delete_post(user.id, post_id)
+    requester_id = None if (user.role or "").lower() in {"admin", "mod"} else user.id
+    await svc.delete_post(requester_id, post_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -185,7 +186,7 @@ async def get_post_liked_by(
 ):
     svc = PostService(db, response, r)
     users = await svc.get_post_liked_by(post_id)
-    return users
+    return LikedByResponse(users=users)
 
 @router.get("/build_feed/{feed_type}", response_model=FeedPostResponse) 
 async def build_feed(

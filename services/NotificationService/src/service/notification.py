@@ -6,7 +6,6 @@ from ..lib.ws_manager import notification_ws_manager
 from ..models.notifcation import Notification
 from ..schema.notification import MarkAsReadRequest, SendNotificationRequest
 from ..repo.notification import send_notification , mark_as_read, get_notifications_for_user
-from ..lib.message_queue import get_redis
 
 class NotificationService:
     @staticmethod
@@ -37,13 +36,6 @@ class NotificationService:
         }
 
         await notification_ws_manager.broadcast_to_user(str(res.user_id), payload)
-
-        # pub sub fall back : 
-        try:
-            redis = get_redis()
-            await redis.publish("notifications", str(res.id))
-        except Exception as e:
-            log.warning(f"Redis publish skipped: {e}")
 
         log.info(f"Notification sent with ID: {res.id}")
         return res

@@ -29,7 +29,7 @@ async def notifications_live_socket(websocket: WebSocket):
     except WebSocketDisconnect:
         notification_ws_manager.disconnect(websocket, uid)
 
-# via the pubsub : 
+# Send and deliver notifications via websocket manager.
 @router.post("/send")
 async def send_notification(
     request: SendNotificationRequest,

@@ -35,12 +35,27 @@ class PostService:
             log.error(f"Error fetching post: {he.detail}")
             raise he
 
-    async def delete_post(self, uid: UUID, post_id: UUID):
+    async def delete_post(self, uid: UUID | None, post_id: UUID):
         try:
-            res = await self.post_repo.delete_post(post_id, uid)
+            can_delete_any = uid is None
+            res = await self.post_repo.delete_post(post_id, uid, can_delete_any=can_delete_any)
             if not res:
                 raise HTTPException(status_code=404, detail="Post not found or user unauthorized")
             log.info(f"Post deleted with ID: {post_id}")
+        except HTTPException as he:
+            log.error(f"Error deleting post: {he.detail}")
+            raise he
+        except Exception as e:
+            log.error(f"Error deleting post: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    async def delete_post_high(self, post_id: UUID):
+        """This is a high level delete which will be called by the feed service when a post is deleted, it will take care of deleting the post from the feed as well."""
+        try:
+            res = await self.post_repo.delete_post_high(post_id)
+            if not res:
+                raise HTTPException(status_code=404, detail="Post not found or user unauthorized")
+            log.info(f"Post deleted with ID: {post_id} via high level delete")
         except HTTPException as he:
             log.error(f"Error deleting post: {he.detail}")
             raise he
@@ -58,6 +73,7 @@ class PostService:
         edited_by: str = "",
         tags: str | None = None,
     ):
+        """patch the post"""
         try:
             res = await self.post_repo.patch_post(
                 post_id, uid, title, body, image_link, edited_by, tags
@@ -139,4 +155,16 @@ class PostService:
             return await self.post_repo.build_feed(user_id, feed_type)
         except Exception:
             log.exception(f"Error building feed for user: {user_id}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    async def patch_self_post(self, post_id: UUID, uid: UUID, body: str | None = None, edited_by: str = ""):
+        try:
+            res = await self.post_repo.patch_self_post(post_id, uid, body, edited_by)
+            log.info(f"Post patched with ID: {post_id} by user ID: {uid}")
+            return res
+        except HTTPException as he:
+            log.error(f"Error patching post: {he.detail}")
+            raise he
+        except Exception as e:
+            log.error(f"Error patching post: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")

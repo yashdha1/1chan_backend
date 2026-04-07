@@ -19,19 +19,11 @@ services:
       - redis_post_cache_data:/data
     restart: unless-stopped
   
-  # redis-stream-messenger:
-  #   image: redis:7-alpine
-  #   container_name: onechan-redis-messenger
-  #   ports:
-  #     - "6381:6379"
-  #   restart: unless-stopped
-  
-  # notifications pub sub wala scene
-  redis-notication: 
+  redis-stream-messenger:
     image: redis:7-alpine
-    container_name: onechan-redis-notification
+    container_name: onechan-redis-messenger
     ports:
-      - "6382:6379"
+      - "6381:6379"
     restart: unless-stopped
 
   # authentication service 

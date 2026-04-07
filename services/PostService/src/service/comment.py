@@ -10,6 +10,8 @@ from ..repo.comment import CommentRepository
 from ..repo.post import PostRepository
 from .AsyncClient import AsyncClient
 
+INTERNAL_SERVER_ERROR = "Internal Server Error"
+
 
 class CommentService:
     def __init__(self, db: AsyncSession, response: Response, r=None) -> None:
@@ -70,23 +72,24 @@ class CommentService:
             raise
         except Exception as e:
             log.error(f"Error creating comment: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
     async def list_for_post(self, post_id: UUID, offset: int, parent_id: UUID) -> list[Comment]:
         try:
             return await self.comment_repo.list_for_post(post_id, offset, parent_id)
         except Exception as e:
             log.error(f"Error listing comments: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
-    async def delete_comment(self, comment_id: UUID, user_id: UUID) -> None:
+    async def delete_comment(self, comment_id: UUID, user_id: UUID, role: str) -> None:
         try:
-            await self.comment_repo.delete_comment(comment_id, user_id)
+            can_delete_any = role in {"admin", "mod"}
+            await self.comment_repo.delete_comment(comment_id, user_id, can_delete_any)
         except HTTPException:
             raise
         except Exception as e:
             log.error(f"Error deleting comment: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
     async def like_comment(self, comment_id: UUID, user_id: UUID) -> Comment:
         try:
@@ -95,7 +98,7 @@ class CommentService:
             raise
         except Exception as e:
             log.error(f"Error liking comment: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
     async def unlike_comment(self, comment_id: UUID, user_id: UUID) -> Comment:
         try:
@@ -104,4 +107,4 @@ class CommentService:
             raise
         except Exception as e:
             log.error(f"Error unliking comment: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)

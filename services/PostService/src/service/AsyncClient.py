@@ -53,7 +53,7 @@ class AsyncClient:
     async def get_user_by_username(username: str) -> dict | None:
         try:
             async with httpx.AsyncClient() as client:
-                url = f"{settings.AUTH_SERVICE_URL}/profile/{username}"
+                url = f"{settings.AUTH_SERVICE_URL}/auth/profile/{username}"
                 response = await client.get(url)
                 response.raise_for_status()
                 return response.json().get("user")

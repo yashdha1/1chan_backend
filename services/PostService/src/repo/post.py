@@ -1,9 +1,10 @@
 import json
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 # from sqlalchemy.ext.asyncio import AsyncSession # noqa F401
 
+from ..models.comment import Comment, CommentLike
 from ..models.post import Post, PostLike
 from fastapi import HTTPException
 from ..core.logger import logger as log
@@ -37,12 +38,26 @@ class PostRepository:
         by_id = {p.id: p for p in res.scalars().all()}
         return [by_id[i] for i in ids if i in by_id]
 
-    async def delete_post(self, post_id, user_id):
-        q = select(Post).where(Post.id == post_id, Post.user_id == user_id)
+    async def delete_post(self, post_id, user_id: UUID | None = None, can_delete_any: bool = False): 
+        q = select(Post).where(Post.id == post_id)
+        if not can_delete_any:
+            q = q.where(Post.user_id == user_id)
         res = await self.db.execute(q)
         post = res.scalar_one_or_none()
         if not post:
             raise HTTPException(status_code=404, detail="Post not found or user unauthorized")
+
+        comment_ids_query = select(Comment.id).where(Comment.post_id == post_id)
+        comment_ids_res = await self.db.execute(comment_ids_query)
+        comment_ids = list(comment_ids_res.scalars().all())
+
+        if comment_ids:
+            await self.db.execute(
+                delete(CommentLike).where(CommentLike.comment_id.in_(comment_ids)) 
+            )
+            await self.db.execute(delete(Comment).where(Comment.post_id == post_id))
+
+        await self.db.execute(delete(PostLike).where(PostLike.post_id == post_id))
         await self.db.delete(post)
         await self.db.commit()
         return True
@@ -153,7 +168,8 @@ class PostRepository:
                         return posts
                 except (json.JSONDecodeError, ValueError):
                     pass
-
+        
+        # 2. SEARCH q
         tsquery = func.websearch_to_tsquery("english", query)
         statement = (
             select(Post)
@@ -162,9 +178,12 @@ class PostRepository:
                 func.ts_rank(Post.search_vector, tsquery).desc(),
                 Post.like_count.desc(),
             )
+            .limit(10)
         )
         res = await self.db.execute(statement)
         posts = list(res.scalars().all())
+
+        # 3. cache hit
         if self.cache and posts:
             payload = json.dumps([str(p.id) for p in posts])
             await self.cache.set(cache_key, payload, ex=3600)
@@ -175,12 +194,13 @@ class PostRepository:
     async def get_post_liked_by(self, post_id: UUID) -> list[str]:
         """fetch the list of user who like the post with ID post_id"""
         q = (
-            select(PostLike)
+            select(Post.user_name)
+            .join(PostLike, PostLike.user_id == Post.user_id)
             .where(PostLike.post_id == post_id)
-            .join(Post, PostLike.user_id == Post.user_id)
+            .distinct()
         )
-        res = await self.db.execute(q).all()
-        users = [row[0].user_name for row in res if row[0].user_name]
+        res = await self.db.execute(q)
+        users = [user_name for user_name in res.scalars().all() if user_name]
         return users
     
     async def build_feed(self, user_id: UUID, feed_type) -> list[Post]:
