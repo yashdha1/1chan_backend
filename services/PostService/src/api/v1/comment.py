@@ -93,7 +93,7 @@ async def delete_comment(
     user: UserContext = Depends(get_current_user),
 ):
     svc = CommentService(db, response, r)
-    await svc.delete_comment(comment_id, user.id)
+    await svc.delete_comment(comment_id, user.id, user.role)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
