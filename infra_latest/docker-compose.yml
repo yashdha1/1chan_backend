@@ -1,0 +1,309 @@
+services:
+
+  # pgs 
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-auth
+    environment:
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+      POSTGRES_DB: AuthDB
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth -d AuthDB"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  postgres-post:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-post
+    environment:
+      POSTGRES_USER: post
+      POSTGRES_PASSWORD: post
+      POSTGRES_DB: PostDB
+    volumes:
+      - postgres_post_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U post -d PostDB"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  postgres-notification:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-notification
+    environment:
+      POSTGRES_USER: notification
+      POSTGRES_PASSWORD: notification
+      POSTGRES_DB: NotificationDB
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notification -d NotificationDB"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  postgres-feed:
+    image: postgres:16-alpine
+    container_name: onechan-postgres-feed
+    environment:
+      POSTGRES_USER: feed
+      POSTGRES_PASSWORD: feed
+      POSTGRES_DB: FeedDB
+    volumes:
+      - postgres_feed_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feed -d FeedDB"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  #  Redis 
+  redis-auth:
+    image: redis:7-alpine
+    container_name: onechan-redis-auth
+    volumes:
+      - redis_auth_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  redis-post:
+    image: redis:7-alpine
+    container_name: onechan-redis-post
+    volumes:
+      - redis_post_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  redis-stream-messenger:
+    image: redis:7-alpine
+    container_name: onechan-redis-messenger
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  # services 
+  auth-service:
+    build:
+      context: ./server/services/AuthService
+      dockerfile: DockerFile
+    container_name: onechan-auth-service
+    environment:
+      POSTGRES_AUTH_USERNAME: auth
+      POSTGRES_AUTH_PASSWORD: auth
+      POSTGRES_AUTH_HOST: postgres-auth
+      POSTGRES_AUTH_PORT: "5432"
+      POSTGRES_AUTH_DATABASE: AuthDB
+      REDIS_AUTH_HOST: redis-auth
+      REDIS_AUTH_PORT: "6379"
+      REDIS_STREAM_HOST: redis-stream-messenger
+      REDIS_STREAM_PORT: "6379"
+      JWT_PRIVATE_KEY_FILE: /keys/private.pem
+      JWT_PUBLIC_KEY_FILE: /keys/public.pem
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: "15"
+    volumes:
+      - ./server/jwt-keys:/keys:ro
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis-auth:
+        condition: service_healthy
+      redis-stream-messenger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/docs', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped 
+
+  post-service:
+    build:
+      context: ./server/services/PostService
+      dockerfile: DockerFile
+    container_name: onechan-post-service
+    environment:
+      POSTGRES_POST_USERNAME: post
+      POSTGRES_POST_PASSWORD: post
+      POSTGRES_POST_HOST: postgres-post
+      POSTGRES_POST_PORT: "5432"
+      POSTGRES_POST_DATABASE: PostDB
+      REDIS_POST_HOST: redis-post
+      REDIS_POST_PORT: "6379"
+      REDIS_STREAM_HOST: redis-stream-messenger
+      REDIS_STREAM_PORT: "6379"
+      JWT_PUBLIC_KEY_FILE: /keys/public.pem
+      FEED_SERVICE_URL: http://feed-service:8004/api/v1/feed
+      NOTIFICATION_SERVICE_URL: http://notification-service:8002/api/v1/notifications
+      AUTH_SERVICE_URL: http://auth-service:8001/api/v1
+    volumes:
+      - ./server/jwt-keys:/keys:ro
+    depends_on:
+      postgres-post:
+        condition: service_healthy
+      redis-post:
+        condition: service_healthy
+      redis-stream-messenger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8003/docs', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  feed-service:
+    build:
+      context: ./server/services/FeedService
+      dockerfile: DockerFile
+    container_name: onechan-feed-service
+    environment:
+      POSTGRES_FEED_USERNAME: feed
+      POSTGRES_FEED_PASSWORD: feed
+      POSTGRES_FEED_HOST: postgres-feed
+      POSTGRES_FEED_PORT: "5432"
+      POSTGRES_FEED_DATABASE: FeedDB
+      REDIS_POST_HOST: redis-post
+      REDIS_POST_PORT: "6379"
+      JWT_PUBLIC_KEY_FILE: /keys/public.pem
+    volumes:
+      - ./server/jwt-keys:/keys:ro
+    depends_on:
+      postgres-feed:
+        condition: service_healthy
+      redis-post:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8004/docs', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./server/services/NotificationService
+      dockerfile: DockerFile
+    container_name: onechan-notification-service
+    environment:
+      POSTGRES_NOTIFICATION_USERNAME: notification
+      POSTGRES_NOTIFICATION_PASSWORD: notification
+      POSTGRES_NOTIFICATION_HOST: postgres-notification
+      POSTGRES_NOTIFICATION_PORT: "5432"
+      POSTGRES_NOTIFICATION_DATABASE: NotificationDB
+      REDIS_STREAM_HOST: redis-stream-messenger
+      REDIS_STREAM_PORT: "6379"
+      JWT_PUBLIC_KEY_FILE: /keys/public.pem
+    volumes:
+      - ./server/jwt-keys:/keys:ro
+    depends_on:
+      postgres-notification:
+        condition: service_healthy
+      redis-stream-messenger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8002/docs', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  seed-auth-admin:
+    build:
+      context: ./server/services/AuthService
+      dockerfile: DockerFile
+    container_name: onechan-seed-auth-admin
+    environment:
+      POSTGRES_AUTH_USERNAME: auth
+      POSTGRES_AUTH_PASSWORD: auth
+      POSTGRES_AUTH_HOST: postgres-auth
+      POSTGRES_AUTH_PORT: "5432"
+      POSTGRES_AUTH_DATABASE: AuthDB
+      ADMIN_USERNAME: onechan_admin
+      ADMIN_PASSWORD: "1234567890"
+      ADMIN_BIO: "Super admin account"
+      ADMIN_AVATAR: "https://api.dicebear.com/9.x/thumbs/svg?seed=onechan_admin"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    command: ["python", "seed_admin.py"]
+    restart: "no"
+
+  # gateway
+
+  kong:
+    image: kong:3.6
+    container_name: onechan-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8010"
+    volumes:
+      - ./server/infra/kong.yaml:/etc/kong/kong.yaml:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      post-service:
+        condition: service_healthy
+      feed-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # frontend
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        AUTH_URL: http://kong:8000
+        POST_URL: http://kong:8000
+        FEED_URL: http://kong:8000
+        NOTIF_URL: http://kong:8000
+    container_name: onechan-frontend
+    environment:
+      AUTH_URL: http://kong:8000
+      POST_URL: http://kong:8000
+      FEED_URL: http://kong:8000
+      NOTIF_URL: http://kong:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - kong
+    restart: unless-stopped
+
+volumes:
+  postgres_auth_data:
+  postgres_post_data:
+  postgres_notification_data:
+  postgres_feed_data:
+  redis_auth_data:
+  redis_post_data:
+  redis_stream_data:

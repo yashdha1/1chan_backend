@@ -6,17 +6,19 @@ from ...lib.db import get_db
 from ...lib.redis import get_redis
 
 from ...schema.user import (
-    Profile,
     UserLoginRequest,
     UserLoginResponse,
     UserRegistrationRequest,
 )
 from ...service.auth_user import AuthService
 
+# requires no authentication : 
+# may require the refresh token :
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(prefix="/free_auth", tags=["auth"])
 
-@router.post("/register", response_model=UserLoginResponse) 
+
+@router.post("/register", response_model=UserLoginResponse)
 async def register(
     body: UserRegistrationRequest,
     response: Response,
@@ -52,15 +54,5 @@ async def refresh_tokens(
     return await svc.refresh(refresh)
 
 
-@router.get("/profile/{username}", response_model=Profile)
-async def get_profile(
-    username: str,
-    response: Response,
-    db: AsyncSession = Depends(get_db),
-):
-    svc = AuthService(db, response)
-    user = await svc.get_profile(username)
-    return Profile(user=user)
-
-# TODO: Formatting  # noqa 
+# TODO: Formatting  # noqa
 # TODO: stucture    # noqa

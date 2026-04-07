@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     JWT_PUBLIC_KEY_FILE: Path | None = None
     JWT_ALGORITHM: str = "RS256"
 
+
+    # interservice URLs : in production this would be better : 
+    FEED_SERVICE_URL : str = "http://localhost:8004/api/v1/feed"
+    NOTIFICATION_SERVICE_URL : str = "http://localhost:8002/api/v1/notifications"
+    AUTH_SERVICE_URL : str = "http://localhost:8001/api/v1"
+
     @model_validator(mode="after")
     def _resolve_jwt_pem_keys(self) -> "Settings":
         pub = ""

@@ -7,12 +7,11 @@ from ...schema.user import Profile, ProfileUpdateRequest
 from ...service.auth_user import AuthService
 
 from ...lib.db import get_db
-from ...lib.redis import get_redis 
-from ...core.logger import logger as log
+from ...lib.redis import get_redis
 
 from ..dep import get_current_user, UserContext
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/logout", status_code=204)
 async def logout(
@@ -27,30 +26,54 @@ async def logout(
         raise HTTPException(status_code=401, detail="Missing refresh token")
     svc = AuthService(db, response, r)
     await svc.logout_user(user, refresh)
-    
-@router.patch("/profile/{username}", response_model=Profile)
-async def update_profile(
+
+@router.get("/profile/{username}", response_model=Profile)
+async def get_profile(
     username: str,
-    body: ProfileUpdateRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    r: Redis = Depends(get_redis),
-    user: UserContext = Depends(get_current_user),
-): 
-    svc = AuthService(db, response, r)
-    updated = await svc.update_profile(username, body, user)
-    return Profile(user=updated)
+):
+    svc = AuthService(db, response)
+    username = username.split(" ")[0]
+    print(f"Fetching profile for username reeq by the notification: {username}")
+    user = await svc.get_profile(username)
+    return Profile(user=user)
 
-@router.delete("/profile/{username}", status_code=204)
-async def delete_profile(
-    username: str,
+@router.patch("/profile", response_model=Profile)
+async def update_profile(
+    body: ProfileUpdateRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
     user: UserContext = Depends(get_current_user),
 ):
     svc = AuthService(db, response, r)
-    return await svc.delete_profile(username, user)
+    username = user.uname # just get the user from the username only : 
+    updated = await svc.update_profile(username, body, user)
+    return Profile(user=updated)
 
 
-# TODO: Password reset. # noqa 
+@router.delete("/profile", status_code=204)
+async def delete_own_profile(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = AuthService(db, response, r)
+    return await svc.delete_profile(user) 
+
+@router.delete("/profile/{id}", status_code=204)
+async def delete_profile_by_admin(
+    id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+): 
+    if user.role != "admin": 
+        raise HTTPException(status_code=403, detail="Only admins can delete profiles.")
+    svc = AuthService(db, response, r)
+    return await svc.delete_profile_by_admin(id)
+
+# TODO: Password reset. # noqa

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.router import router
 from .core.config import settings
-from .lib.db import Base, engine 
+from .lib.db import Base, engine
 
 
 @asynccontextmanager
@@ -23,9 +23,10 @@ app = FastAPI(
 # Middleware for CORS configuration
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/api/v1/auth")
+app.include_router(router, prefix="/api/v1")

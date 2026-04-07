@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
- 
+
 _SRC_DIR = Path(__file__).resolve().parent.parent
 _SERVICE_ROOT = _SRC_DIR.parent
 
@@ -51,19 +51,9 @@ class Settings(BaseSettings):
             pub = _normalize_pem(self.JWT_PUBLIC_KEY)
 
         if not priv or not pub:
-            raise ValueError(
-                "JWT RS256 requires RSA key material in PEM form. Set JWT_PRIVATE_KEY and "
-                "JWT_PUBLIC_KEY to PEM strings, or JWT_PRIVATE_KEY_FILE and JWT_PUBLIC_KEY_FILE "
-                "to PEM file paths. Generate a key pair with: "
-                "openssl genrsa -out private.pem 2048 && "
-                "openssl rsa -in private.pem -pubout -out public.pem"
-            )
+            raise ValueError("Auth failed")
         if "BEGIN" not in priv or "BEGIN" not in pub:
-            raise ValueError(
-                "JWT keys must be full PEM text (include -----BEGIN ...----- and -----END ...----- "
-                "lines), not bare base64. Use JWT_PRIVATE_KEY_FILE / JWT_PUBLIC_KEY_FILE pointing "
-                "at .pem files, or one env line with literal \\n between PEM lines."
-            )
+            raise ValueError("Auth failed")
         object.__setattr__(self, "JWT_PRIVATE_KEY", priv)
         object.__setattr__(self, "JWT_PUBLIC_KEY", pub)
         return self

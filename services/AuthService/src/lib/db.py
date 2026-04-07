@@ -21,14 +21,14 @@ DATABASE_URL = (
     f"postgresql+asyncpg://{_pg_user}:{_pg_pass}@{_pg_host}:{_pg_port}/{_pg_db}"
 )
 
-Base = declarative_base() 
+Base = declarative_base()
 engine = create_async_engine(DATABASE_URL)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_db():
     async with AsyncSessionLocal() as session:
-        try: 
-            yield session 
-        finally: 
+        try:
+            yield session
+        finally:
             await session.close()

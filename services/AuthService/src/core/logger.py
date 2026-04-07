@@ -13,21 +13,21 @@ logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-           "<level>{level: <8}</level> | "
-           "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-           "<level>{message}</level>",
+    "<level>{level: <8}</level> | "
+    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+    "<level>{message}</level>",
 )
 
 # File logger (rotating logs)
 logger.add(
     f"{LOG_DIR}/app.log",
-    rotation="10 MB",       # Rotate after 10MB
-    retention="10 days",    # Keep logs for 10 days
-    compression="zip",      # Compress old logs
+    rotation="10 MB",  # Rotate after 10MB
+    retention="10 days",  # Keep logs for 10 days
+    compression="zip",  # Compress old logs
     level="INFO",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
 )
- 
+
 # Optional: separate error log file
 logger.add(
     f"{LOG_DIR}/error.log",

@@ -1,9 +1,8 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, DateTime, String, func, ForeignKey
-from sqlalchemy_utils import TSVectorType # FTS in postgres: 
-from sqlalchemy.dialects.postgresql import UUID
- 
+from sqlalchemy import BigInteger, Column, Computed, DateTime, String, func, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
+
 
 from ..lib.db import Base
 
@@ -20,7 +19,14 @@ class Post(Base) :
     like_count = Column(BigInteger, default=0)
     edited_by = Column(String, default="") 
     comment_count = Column(BigInteger, default=0)
-    search_vector = Column(TSVectorType("title", "content"))
+    search_vector = Column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, '') || ' ' || coalesce(tags, ''))",
+            persisted=True,
+        ),
+    )
+    tags = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=False), server_default=func.now())
     updated_at = Column(DateTime(timezone=False), server_default=func.now(), onupdate=func.now())
 

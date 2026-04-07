@@ -9,6 +9,8 @@ from ..models.comment import Comment, CommentLike
 from ..models.post import Post
 from ..core.logger import logger as log
 
+COMMENT_NOT_FOUND = "Comment not found"
+
 
 class CommentRepository:
     def __init__(self, db: AsyncSession, cache=None):
@@ -46,6 +48,7 @@ class CommentRepository:
             user_avatar=user_avatar,
             body=body,
         )
+        print("comment created in repo")
         self.db.add(comment)
         post.comment_count = int(post.comment_count or 0) + 1
         self.db.add(post)
@@ -54,34 +57,43 @@ class CommentRepository:
         log.info(f"Comment created id={comment.id} post_id={post_id}")
         return comment
 
-    async def list_for_post(self, post_id: UUID, ofset: int) -> list[Comment]:
+    async def list_for_post(self, post_id: UUID, ofset: int, parent_id: UUID | None) -> list[Comment]:
+
+        # TODO : cache the res for this query in the global cache : invalidate after like 2 hrs : # noqa E501
         q = (
             select(Comment)
-            .where(Comment.post_id == post_id)
-            .order_by(Comment.like_count.desc()
+            .where(Comment.post_id == post_id, Comment.parent_id == parent_id)
+            .order_by(Comment.like_count.desc())
             .offset(ofset)
             .limit(10)
-            )
         )
         res = await self.db.execute(q)
         return list(res.scalars().all())
 
-    async def delete_comment(self, comment_id: UUID, user_id: UUID) -> None:
-        q = select(Comment).where(Comment.id == comment_id, Comment.user_id == user_id)
+    async def delete_comment(
+        self,
+        comment_id: UUID,
+        user_id: UUID,
+        can_delete_any: bool = False,
+    ) -> None:
+        q = select(Comment).where(Comment.id == comment_id)
         res = await self.db.execute(q)
         comment = res.scalar_one_or_none()
         if not comment:
-            raise HTTPException(
-                status_code=404, detail="Comment not found or user unauthorized"
-            )
+            raise HTTPException(status_code=404, detail=COMMENT_NOT_FOUND)
+        if not can_delete_any and comment.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not allowed to delete this comment")
+
+        if comment.body == "[Delete]":
+            return
+
         post_id = comment.post_id
         pq = select(Post).where(Post.id == post_id)
         pr = await self.db.execute(pq)
         post = pr.scalar_one_or_none()
 
-        comment.body = "[deleted]" # update the status of the comment, instead of deleting to keep the comments history. 
-        
-        await self.db.commit()
+        comment.body = "[Delete]"
+        self.db.add(comment)
         if post:
             post.comment_count = max(0, int(post.comment_count or 0) - 1)
             self.db.add(post)
@@ -93,7 +105,7 @@ class CommentRepository:
         cr = await self.db.execute(cq)
         comment = cr.scalar_one_or_none()
         if not comment:
-            raise HTTPException(status_code=404, detail="Comment not found")
+            raise HTTPException(status_code=404, detail=COMMENT_NOT_FOUND)
 
         lq = select(CommentLike).where(
             CommentLike.comment_id == comment_id,
@@ -110,12 +122,17 @@ class CommentRepository:
         await self.db.refresh(comment)
         return comment
 
+    async def get_comment_by_id(self, comment_id: UUID) -> Comment | None:
+        q = select(Comment).where(Comment.id == comment_id)
+        res = await self.db.execute(q)
+        return res.scalar_one_or_none()
+
     async def unlike_comment(self, comment_id: UUID, user_id: UUID) -> Comment:
         cq = select(Comment).where(Comment.id == comment_id)
         cr = await self.db.execute(cq)
         comment = cr.scalar_one_or_none()
         if not comment:
-            raise HTTPException(status_code=404, detail="Comment not found")
+            raise HTTPException(status_code=404, detail=COMMENT_NOT_FOUND)
 
         lq = select(CommentLike).where(
             CommentLike.comment_id == comment_id,

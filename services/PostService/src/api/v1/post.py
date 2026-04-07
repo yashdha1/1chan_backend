@@ -9,14 +9,17 @@ from ...lib.db import get_db
 from ...lib.redis import get_redis
 from ...models.post import Post
 from ...schema.posts.posts import (
+    LikedByResponse,
     PatchPostRequest,
-    PostRequest,
+    CreatePostRequest,
     PostResponse,
     SearchPostItem,
     SearchPostsResponse,
     SearchPostRequest,
+    FeedPostResponse
 )
 from ...service.post import PostService
+from .post_manager import manager
 
 router = APIRouter(tags=["Posts"])
 
@@ -32,10 +35,11 @@ def _post_res(post: Post) -> PostResponse:
         image_link=post.image_link,
         like_count=int(post.like_count or 0),
         comment_count=int(post.comment_count or 0),
+        tags=[t for t in (post.tags or "").split(",") if t],
     )
 
 
-def _create_payload(req: PostRequest, user: UserContext) -> dict:
+def _create_payload(req: CreatePostRequest, user: UserContext) -> dict:
     return {
         "user_id": user.id,
         "user_name": user.uname,
@@ -43,12 +47,13 @@ def _create_payload(req: PostRequest, user: UserContext) -> dict:
         "title": req.title,
         "content": req.body,
         "image_link": req.image_link,
+        "tags": ",".join(req.tags),  # save as a string 
     }
 
 
 @router.post("/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
-    body: PostRequest,
+    body: CreatePostRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
     r: Redis = Depends(get_redis),
@@ -57,6 +62,18 @@ async def create_post(
     svc = PostService(db, response, r)
     post = await svc.create_post(_create_payload(body, user))
     return _post_res(post)
+
+
+@router.get("/user/{username}", response_model=list[PostResponse])
+async def get_posts_by_username(
+    username: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+):
+    svc = PostService(db, response, r)
+    posts = await svc.get_posts_by_username(username)
+    return [_post_res(p) for p in posts]
 
 
 @router.get("/{post_id}", response_model=PostResponse)
@@ -88,6 +105,7 @@ async def patch_post(
         body=body.body,
         image_link=body.image_link,
         edited_by=body.edited_by,
+        tags=",".join(body.tags) if body.tags is not None else None,
     )
     return _post_res(post)
 
@@ -101,8 +119,41 @@ async def delete_post(
     user: UserContext = Depends(get_current_user),
 ):
     svc = PostService(db, response, r)
-    await svc.delete_post(user.id, post_id)
+    requester_id = None if (user.role or "").lower() in {"admin", "mod"} else user.id
+    await svc.delete_post(requester_id, post_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{post_id}/like", response_model=PostResponse)
+async def like_post(
+    post_id: UUID,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = PostService(db, response, r)
+    post = await svc.like_post(post_id, user.id, user.uname)
+    await manager.broadcast_post(
+        str(post_id), {"event": "like_update", "like_count": int(post.like_count or 0)}
+    )
+    return _post_res(post)
+
+
+@router.post("/{post_id}/unlike", response_model=PostResponse)
+async def unlike_post(
+    post_id: UUID,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = PostService(db, response, r)
+    post = await svc.unlike_post(post_id, user.id)
+    await manager.broadcast_post(
+        str(post_id), {"event": "like_update", "like_count": int(post.like_count or 0)}
+    )
+    return _post_res(post)
 
 
 @router.post("/search", response_model=SearchPostsResponse)
@@ -113,6 +164,7 @@ async def search_posts(
     r: Redis = Depends(get_redis),
 ):
     svc = PostService(db, response, r)
+    print("Searching for:", body.query)
     posts = await svc.search_posts(body.query)
     items = [
         SearchPostItem(
@@ -124,3 +176,29 @@ async def search_posts(
         for i, p in enumerate(posts)
     ]
     return SearchPostsResponse(items=items)
+
+@router.get("/{post_id}/liked_by", response_model=LikedByResponse)
+async def get_post_liked_by(
+    post_id: UUID,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+):
+    svc = PostService(db, response, r)
+    users = await svc.get_post_liked_by(post_id)
+    return LikedByResponse(users=users)
+
+@router.get("/build_feed/{feed_type}", response_model=FeedPostResponse) 
+async def build_feed(
+    feed_type: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    r: Redis = Depends(get_redis),
+    user: UserContext = Depends(get_current_user),
+):
+    svc = PostService(db, response, r)
+    if feed_type not in ("suggested", "latest", "community"): 
+        return Response(status_code=status.HTTP_400_BAD_REQUEST, content="Invalid feed type")
+    posts = await svc.build_feed(user.id, feed_type) 
+
+    return FeedPostResponse(posts=[_post_res(p) for p in posts])
